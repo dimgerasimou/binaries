@@ -1,0 +1,22 @@
+#!/bin/sh
+
+status="$(cat /sys/class/power_supply/BAT1/status)"
+capacity=$(cat /sys/class/power_supply/BAT1/capacity)
+
+if [[ $status == "Charging" ]]; then
+	icon=" "
+else
+	if (( $capacity > 88 )); then
+		icon=" "
+	elif (( $capacity > 63 )); then
+		icon=" "
+	elif (( $capacity > 38 )); then
+		icon=" "
+	elif (( $capacity > 13 )); then
+		icon=" "
+	else
+		icon=" "
+	fi
+fi
+
+printf "$icon\n"

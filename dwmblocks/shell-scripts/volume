@@ -1,0 +1,24 @@
+#!/bin/sh
+
+case $BLOCK_BUTTON in
+	2) setsid -f st -e sh -c pulsemixer;;
+	3) setsid -f easyeffects;;
+esac
+
+
+volume=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{print $2}')
+volume=$(awk '{print $1*$2}' <<<"${volume} 100")
+
+if [[ "$(wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep "MUTED")" == "" ]]; then
+	if (( $volume > 66 )); then
+		icon=" "
+	elif (( $volume > 33 )); then
+		icon=" "
+	else
+		icon=" "
+	fi
+else
+	icon=" "
+fi
+
+printf "$icon$volume%%\n"

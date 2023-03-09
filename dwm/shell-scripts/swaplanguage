@@ -1,0 +1,12 @@
+#!/bin/sh
+
+currentLanguage="$(setxkbmap -query | grep layout | awk '{print $2}')"
+
+if [[ $currentLanguage == "us" ]]; then
+	setxkbmap -layout gr
+else
+	setxkbmap -layout us
+fi
+
+pkill -RTMIN+3 dwmblocks
+

@@ -1,0 +1,33 @@
+#!/bin/sh
+
+if [ "$(cat /sys/class/net/e*/operstate)" == "up" ]; then
+	mode=1
+	icon=" "
+elif [ "$(cat /sys/class/net/w*/operstate)" == "up" ]; then
+	mode=2
+	icon=" "
+else
+	mode=0
+	icon=" "
+fi
+case $BLOCK_BUTTON in
+	1)	if (( $mode == 0 )); then
+			stringout="Disconnected"
+			address=""
+		else
+			address="$(nmcli device show | grep IP4.ADDRESS | sed 1q | awk '{print $2}' | cut -f1 -d"/")"
+			if (( $mode == 1 )); then
+				stringout="Connected"
+			fi
+		
+			if (( $mode == 2 )); then
+				signal="$(nmcli device show |  grep GENERAL.STATE | sed 1q | awk '{print $2}' | cut -f1 -d"(")"
+				ssid="$(nmcli device show | grep GENERAL.CONNECTION | sed 1q | awk '{print $2}')"
+				stringout="$ssid - $signal%"
+			fi
+		fi
+		notify-send "$stringout" "$address";;
+	2)	setsid -f st -e nmtui;;
+esac
+
+printf "$icon\n"

@@ -1,0 +1,13 @@
+#!/bin/bash
+RETRY="Retry"
+while [ $RETRY == "Retry" ]; do
+	BSSID="$( nmcli -c no -f "BSSID, SSID, SIGNAL, SECURITY" device wifi list | sed -n '1!p' | dmenu -c -p "Select wifi: " -l 20 | cut -d ' ' -f 1)"
+	PASSWORD="$( dmenu -c -n -P -p "Enter your password: " )"
+	PROMPT="$(nmcli device wifi connect $BSSID password $PASSWORD)"
+	if [ "$(echo $PROMPT | cut -d ' ' -f 3)" == "successfully" ]; then
+		RETRY="$(echo "Quit" | dmenu -c -p "Connected successfully: " -l 1)"
+		
+	else
+		RETRY="$(printf "%s\n%s" "Quit" "Retry" | dmenu -nn -c -p "Failed to connect: " -l 2)"
+	fi
+done
