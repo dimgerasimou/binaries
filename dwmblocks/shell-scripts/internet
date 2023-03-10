@@ -2,13 +2,13 @@
 
 if [ "$(cat /sys/class/net/e*/operstate)" == "up" ]; then
 	mode=1
-	icon=" "
+	icon=""
 elif [ "$(cat /sys/class/net/w*/operstate)" == "up" ]; then
 	mode=2
-	icon=" "
+	icon=""
 else
 	mode=0
-	icon=" "
+	icon=""
 fi
 case $BLOCK_BUTTON in
 	1)	if (( $mode == 0 )); then
@@ -30,4 +30,4 @@ case $BLOCK_BUTTON in
 	2)	setsid -f st -e nmtui;;
 esac
 
-printf "$icon\n"
+printf " $icon\n"

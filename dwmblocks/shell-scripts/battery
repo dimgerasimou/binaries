@@ -4,19 +4,19 @@ status="$(cat /sys/class/power_supply/BAT1/status)"
 capacity=$(cat /sys/class/power_supply/BAT1/capacity)
 
 if [[ $status == "Charging" ]]; then
-	icon=" "
+	icon=""
 else
 	if (( $capacity > 88 )); then
-		icon=" "
+		icon=""
 	elif (( $capacity > 63 )); then
-		icon=" "
+		icon=""
 	elif (( $capacity > 38 )); then
-		icon=" "
+		icon=""
 	elif (( $capacity > 13 )); then
-		icon=" "
+		icon=""
 	else
-		icon=" "
+		icon=""
 	fi
 fi
 
-printf "$icon\n"
+printf "$icon  \n"

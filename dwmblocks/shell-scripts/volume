@@ -11,14 +11,14 @@ volume=$(awk '{print $1*$2}' <<<"${volume} 100")
 
 if [[ "$(wpctl get-volume @DEFAULT_AUDIO_SINK@ | grep "MUTED")" == "" ]]; then
 	if (( $volume > 66 )); then
-		icon=" "
+		icon=""
 	elif (( $volume > 33 )); then
-		icon=" "
+		icon=""
 	else
-		icon=" "
+		icon=""
 	fi
 else
-	icon=" "
+	icon=""
 fi
 
-printf "$icon$volume%%\n"
+printf "$icon $volume%%\n"
