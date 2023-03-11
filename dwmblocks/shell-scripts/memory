@@ -4,4 +4,4 @@ case $BLOCK_BUTTON in
 	2) "$TERM" -e htop;;
 esac
 
-printf " %sB\n" "$(free -h | grep Mem | awk '{print $3}')"
+printf "^c#F9E2AF^ %sB^d^\n" "$(free -h | grep Mem | awk '{print $3}')"

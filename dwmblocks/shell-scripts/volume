@@ -21,4 +21,4 @@ else
 	icon=""
 fi
 
-printf "$icon $volume%%\n"
+printf "^c#A6E3A1^$icon $volume%%^d^\n"
