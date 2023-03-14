@@ -1,0 +1,17 @@
+#!/bin/sh
+
+listdir=$HOME/.local/state/dmenu/applicationlist 
+
+cd $HOME
+if [[ "$(cat $listdir)" != "" ]]; then
+	name="$(cat $listdir | cut -f1 -d"#" | dmenu "$@")"
+	if [[ $name != "" ]]; then
+		bin="$(cat $listdir | grep "$name" | cut -f2 -d"#")"
+		line="$(cat $listdir | grep "$name")"
+		sed -i "/${line//\//\\/}/d" $listdir
+		sed -i "1 s/^/${line//\//\\/}\n/" $listdir
+		/usr/bin/sh -c "$bin" &
+	fi
+else
+	echo " " | dmenu -p "No application list found at: $listdir"
+fi

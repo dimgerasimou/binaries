@@ -12,7 +12,7 @@
 /usr/local/bin/dwmblocks &
 
 # Keyboard layouts
-# setxkbmap -layout us,gr -option grp:win_space_toggle
+setxkbmap -layout us,gr -option grp:win_space_toggle
 
 # Multi monitor setup
 (sleep 0.2 && (xrandr --output HDMI-0 --rate 75 --right-of eDP-1-1 --primary --output eDP-1-1 --rate 144)) &

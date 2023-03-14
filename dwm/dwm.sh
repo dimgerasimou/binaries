@@ -1,6 +1,6 @@
 #!/bin/bash
 
-compiledscripts="audiocontrol"
+compiledscripts="audiocontrol mediacontrol"
 shellscripts="dwm-start swaplanguage"
 dir="$HOME/.local/bin/dwm"
 
@@ -33,8 +33,8 @@ else
     done
 
     for script in $compiledscripts; do
-        gcc -Wall -Os compiled-scripts/$script.c -o compiled-scripts/$script
-        cp compiled-scripts/$script $dir/$script
-        rm -f compiled-scripts/$script
+        gcc -Wall -Os c-source/$script.c -o c-source/$script
+        cp c-source/$script $dir/$script
+        rm -f c-source/$script
     done
 fi

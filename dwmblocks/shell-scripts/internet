@@ -28,6 +28,7 @@ case $BLOCK_BUTTON in
 		fi
 		notify-send "$stringout" "$address";;
 	2)	setsid -f st -e nmtui;;
+	3)	notify-send "Wifi Prompt" "Probing access points.."; setsid -f $HOME/.local/bin/dmenu/dmenu-wifiprompt;;
 esac
 
 printf "$icon\n"

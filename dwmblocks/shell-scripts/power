@@ -1,0 +1,23 @@
+#!/bin/sh
+
+case $BLOCK_BUTTON in
+	1)	option=$($HOME/.local/bin/dwmblocks/powermenu)
+		if (( $option == 0 )); then
+			confirm=$($HOME/.local/bin/dwmblocks/confirm)
+			if (( $confirm == 0 )); then
+				shutdown now
+			fi
+		elif (( $option == 1 )); then
+			confirm=$($HOME/.local/bin/dwmblocks/confirm)
+			if (( $confirm == 0 )); then
+				shutdown now -r
+			fi
+		elif (( $option == 2 )); then
+			pkill -SIGHUP dwm
+		elif (( $option == 3 )); then
+			pkill -SIGTERM dwmblocks
+			BLOCK_BUTTON=0
+			dwmblocks &
+		fi;;
+esac
+printf "^c#F38BA8^ ^d^\n"
