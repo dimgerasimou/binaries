@@ -1,6 +1,10 @@
 #!/bin/sh
 
+mpirspath=$HOME/.local/state/dwm
+
 case $BLOCK_BUTTON in
+	1) mkdir -p $mpirspath
+	dbus-send --print-reply --dest=org.freedesktop.DBus  /org/freedesktop/DBus org.freedesktop.DBus.ListNames | grep "mpris" | cut -d "." -f4- | cut -d "\"" -f1 | xmenu | cat > $mpirspath/mprisclient;;
 	2) setsid -f st -e sh -c pulsemixer;;
 	3) setsid -f easyeffects;;
 esac

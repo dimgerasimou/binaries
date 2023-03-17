@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=XSession
-Exec=/usr/local/bin/dwm-start
-TryExec=/usr/local/bin/dwm-start
+Exec=/usr/local/bin/dwm
+TryExec=/usr/local/bin/dwm
 DesktopNames=DWM
 Name=Dynamic Window Manager
