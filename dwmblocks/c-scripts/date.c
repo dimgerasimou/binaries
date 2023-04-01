@@ -38,7 +38,6 @@ int calculatemonthdays(int month, int year) {
 void getcalendar(char *calendar, int mday, int wday, int month, int year) {
 	int firstday = firstdayinmonth(mday, wday);
 	int monthdays = calculatemonthdays(month, year);
-	int daycounter;
 	char day[64];
 
 	strcpy(calendar, "Mo Tu We Th Fr <span color='#F38BA8'>Sa Su</span>\n");
@@ -78,25 +77,32 @@ void getheader(char *header, int month, int year) {
 		strcat(header, " ");
 	strcat(header, temp);
 }
-	
 
 int main() {
 	time_t currentTime = time(NULL);
 	struct tm* localTime = localtime(&currentTime);
 	char *env = getenv("BLOCK_BUTTON");
-	char date[64];
 	int pid;
 
-	if (env != NULL && strcmp(env, "1") == 0) {
-		pid = fork();
-		if (!pid) {
-			char calendar[256];
-			char header[64];
-	
-			getheader(header, localTime->tm_mon, localTime->tm_year + 1900);
-			getcalendar(calendar, localTime->tm_mday, localTime->tm_wday, localTime->tm_mon, localTime->tm_year + 1900);
-			execl("/bin/dunstify", "dunstify", header, calendar, NULL);
-			return 0;
+	if (env != NULL) {
+		if (strcmp(env, "1") == 0) {
+			pid = fork();
+			if (!pid) {
+				char calendar[256];
+				char header[64];
+		
+				getheader(header, localTime->tm_mon, localTime->tm_year + 1900);
+				getcalendar(calendar, localTime->tm_mday, localTime->tm_wday, localTime->tm_mon, localTime->tm_year + 1900);
+				execl("/bin/dunstify", "dunstify", header, calendar, NULL);
+				return 0;
+			}
+		}
+		if (strcmp(env, "3") == 0) {
+			pid = fork();
+			if (!pid) {
+				execl("/bin/firefox", "firefox", "--new-window", "https://calendar.google.com", NULL);
+				return 0;
+			}
 		}
 	}
 

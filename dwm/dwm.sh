@@ -2,39 +2,38 @@
 
 compiledscripts="audiocontrol mediacontrol"
 shellscripts="autostart.sh layoutmenu swaplanguage takescreenshot"
-dir="$HOME/.local/bin/dwm"
+path="$HOME/.local/bin/dwm"
 
 if [ "$1" == "uninstall" ]; then
-    echo "Deleting dwm scripts"
+    echo "Deleting dwm scripts."
     
     sudo rm -f /usr/share/xsessions/dwm.desktop
     
     for script in $shellscripts; do
-        rm -f $dir/$script
+        rm -f $path/$script
     done
 
     for script in $compiledscripts; do
-        rm -f $dir/$script
+        rm -f $path/$script
     done
 
-    if [ "$(ls -A $dir)" ]; then
-        rm -rf $dir
+    if [ -z "$(ls -A $path)" ]; then
+        rm -rf $path
     fi
 else
-    echo "Copying dwm scripts"
+    echo "Copying dwm scripts."
     
     sudo mkdir -p /usr/share/xsessions
     sudo cp desktop-files/dwm.desktop /usr/share/xsessions/dwm.desktop
 
-    mkdir -p $dir
+    mkdir -p $path
 
     for script in $shellscripts; do
-        cp shell-scripts/$script $dir/$script
+        cp shell-scripts/$script $path/$script
     done
 
     for script in $compiledscripts; do
         gcc -Wall -Os c-source/$script.c -o c-source/$script
-        cp c-source/$script $dir/$script
-        rm -f c-source/$script
+        mv c-source/$script $path/$script
     done
 fi
