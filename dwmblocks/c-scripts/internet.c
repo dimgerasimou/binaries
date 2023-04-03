@@ -18,6 +18,7 @@ struct devprop {
 };
 
 char *execnmtui[] = {"st", "-e", "nmtui", NULL};
+char dmenuscriptpath[] = "/.local/bin/dmenu/dmenu-wifiprompt";
 
 void getnames(char *edev, char *wdev) {
 	DIR *dp;
@@ -86,7 +87,6 @@ int geticon(char *icon) {
 	return state;
 }
 
-
 void getdeviceattributes(char *name, struct devprop *deviceprop) {
 	FILE *ep;
 	char buffer[256];
@@ -144,7 +144,6 @@ void getdeviceattributes(char *name, struct devprop *deviceprop) {
 		}
 	}
 }
-
 
 void netproperties(int state) {
 	char headermessage[64] = "Network Manager";
@@ -214,10 +213,16 @@ void checkexec(int state) {
 		case 2: execv("/usr/local/bin/st", execnmtui);
 			break;
 
-		case 3: //TODO network probing with dmenu
+		case 3: pid = fork();
+			if (!pid) {
+				execl("/bin/dunstify", "dunstify", "       Network Manager", "Probing wifi access points...", NULL);
+				exit(EXIT_SUCCESS);
+			}
+			env = getenv("HOME");
+			strcat(env, dmenuscriptpath);
+			execl(env, "dmenu-wifiprompt", NULL);
 			break;
-
-		default:
+		default: break;
 	}
 	exit(EXIT_SUCCESS);
 }
