@@ -12,6 +12,6 @@ int main() {
 		return 1;
         }
 	release = strtok(buffer.release, "-");
-	printf(CLR_6" %s"NRM"\n", release);
+	printf(CLR_4" %s"NRM"\n", release);
         return 0;
 }

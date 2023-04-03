@@ -48,7 +48,7 @@ void notifymode() {
 	pclose(ep);
 	execl("/bin/dunstify", "dunstify", "Optimus Manager mode", mode, NULL);
 }
-void checkexec() {
+void executebutton() {
 	char *env = getenv("BLOCK_BUTTON");
 	int pid;
 
@@ -66,7 +66,7 @@ int main(void) {
 	int capacity;
 	char status[64];
 	
-	checkexec();
+	executebutton();
 
 	if ((fp = fopen("/sys/class/power_supply/BAT1/status", "r")) == NULL) {
 		perror("Failed to read \"/sys/class/power_supply/BAT1/status\"");

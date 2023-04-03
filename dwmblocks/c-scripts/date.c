@@ -78,33 +78,42 @@ void getheader(char *header, int month, int year) {
 	strcat(header, temp);
 }
 
-int main() {
-	time_t currentTime = time(NULL);
-	struct tm* localTime = localtime(&currentTime);
+void executebutton(int mday, int wday, int mon, int year) {
 	char *env = getenv("BLOCK_BUTTON");
 	int pid;
 
-	if (env != NULL) {
-		if (strcmp(env, "1") == 0) {
-			pid = fork();
-			if (!pid) {
-				char calendar[256];
-				char header[64];
-		
-				getheader(header, localTime->tm_mon, localTime->tm_year + 1900);
-				getcalendar(calendar, localTime->tm_mday, localTime->tm_wday, localTime->tm_mon, localTime->tm_year + 1900);
-				execl("/bin/dunstify", "dunstify", header, calendar, NULL);
-				return 0;
-			}
-		}
-		if (strcmp(env, "3") == 0) {
-			pid = fork();
-			if (!pid) {
-				execl("/bin/firefox", "firefox", "--new-window", "https://calendar.google.com", NULL);
-				return 0;
-			}
-		}
+	if (env == NULL)
+		return;
+
+	switch(env[0] - '0') {
+		case 1:	pid = fork();
+			if (pid)
+				return;
+
+			char calendar[256];
+			char header[64];
+
+			getheader(header, mon, year);
+			getcalendar(calendar, mday, wday, mon, year);
+			execl("/bin/dunstify", "dunstify", header, calendar, NULL);
+			exit(EXIT_SUCCESS);
+
+		case 3:	pid = fork();
+			if (pid)
+				return;
+			
+			execl("/bin/firefox", "firefox", "--new-window", "https://calendar.google.com", NULL);
+			exit(EXIT_SUCCESS);
+
+		default: break;
 	}
+}
+
+int main() {
+	time_t currentTime = time(NULL);
+	struct tm* localTime = localtime(&currentTime);
+
+	executebutton(localTime->tm_mday, localTime->tm_wday, localTime->tm_mon, localTime->tm_year + 1900);
 
 	printf(CLR_1" %02d/%02d"NRM"\n", localTime->tm_mday, localTime->tm_mon);
 	return 0;
