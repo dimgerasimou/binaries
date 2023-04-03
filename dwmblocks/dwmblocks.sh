@@ -1,8 +1,8 @@
 #!/bin/sh
 
 path="$HOME/.local/bin/dwmblocks"
-cscripts="date time kernel battery internet power"
-shscripts="keyboard memory spacer spacer-0 volume"
+cscripts="date time kernel battery internet power memory"
+shscripts="keyboard spacer spacer-0 volume"
 
 if [ "$1" == "uninstall" ]; then
 	echo "Deleting dwmblocks scripts."
