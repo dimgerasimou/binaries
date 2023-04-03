@@ -8,12 +8,33 @@
 
 char *baticons[] = { CLR_1" "NRM, CLR_3" "NRM, CLR_2" "NRM, CLR_2" "NRM, CLR_2" "NRM };
 
+void parsemode(char *input) {
+	char mode[64];
+	char *temp;
+
+	mode[0] = '\0';
+	if ((temp = strchr(input, ':')) == NULL) {
+		perror("Could not get format");
+		input[0] = '\0';
+		return;
+	}
+	temp += 2;
+	temp[0] += ('A' - 'a'); /* capitilize first letter */
+	for (int i=0; temp[i] != '\0'; i++) {
+		if (temp[i] == ' ' || temp[i] == '\n') {
+			temp[i] = '\0';
+			break;
+		}
+	}
+	for(int i=0; i < (20 - strlen(temp)) / 2; i++) /* padding for space overfill */
+		strcat(mode, " ");
+	strcat(mode, temp);
+	strcpy(input, mode);
+}
+
 void notifymode() {
 	FILE *ep;
-	char mode[64];
 	char buffer[64];
-	char *temp;
-	int padding;
 
 	if ((ep = popen("optimus-manager --status", "r")) == NULL) {
 		perror("Failed to execute optimus-manager");
@@ -22,41 +43,25 @@ void notifymode() {
 
 	while(fgets(buffer, 64, ep) != NULL) {
 		if (strstr(buffer, "Current") != NULL) {
-			mode[0] = '\0';
-			if ((temp = strchr(buffer, ':')) == NULL) {
-				perror("Could not get format");
-				return;
-			}
-
-			temp += 2;
-			temp[0] = temp[0] - 'a' + 'A';
-			for (int i=0; temp[i] != '\0'; i++) {
-				if (temp[i] == ' ' || temp[i] == '\n') {
-					temp[i] = '\0';
-					break;
-				}
-			}
-
-			padding = (20 - strlen(temp)) / 2;
-			for(int i=0; i < padding; i++)
-                		strcat(mode, " ");
-
-			strcat(mode, temp);
+			parsemode(buffer);
 			break;
 		}
 	}
 	pclose(ep);
-	execl("/bin/dunstify", "dunstify", "Optimus Manager mode", mode, NULL);
+	execl("/bin/dunstify", "dunstify", "Optimus Manager mode", buffer, NULL);
 }
 void executebutton() {
 	char *env = getenv("BLOCK_BUTTON");
-	int pid;
 
 	if (env != NULL && strcmp(env, "1") == 0) {
-		pid = fork();
-		if (!pid) {
-			notifymode();
-			exit(EXIT_SUCCESS);
+		switch (fork()) {
+			case -1:perror("Failed in fork");
+				exit(EXIT_FAILURE);
+
+			case 0:	notifymode();
+				exit(EXIT_SUCCESS);
+
+			default:break;
 		}
 	}
 }

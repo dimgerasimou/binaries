@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <dirent.h>
 #include "colorscheme.h"
 
@@ -63,7 +64,6 @@ int geticon(char *icon) {
 	int state = 0;
 	
 	getpaths(epath, wpath);
-	
 	if ((fp = fopen(wpath, "r")) != NULL) {
 		fscanf(fp, "%s", buffer);
 		if (strcmp(buffer, "up") == 0) {
@@ -169,8 +169,8 @@ void netproperties(int state) {
 
 		case 2:	getdeviceattributes(wdev, &deviceprop);
 			puts(wdev);
-			sprintf(output, "%s\nSSID: %s - %s%%\n\nIPv4 Address: %s\nIPv4 Gateway: %s\nIPv6 Address: %s\n",
-			        deviceprop.type, deviceprop.connection, deviceprop.state, deviceprop.ip4address, deviceprop.ip4gateway, deviceprop.ip6address);
+			sprintf(output, "%s\nSSID: %s - %s%%\n\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
+			        deviceprop.type, deviceprop.connection, deviceprop.state, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
 			if (strlen(deviceprop.connection + 6) > maxw)
 				maxw = strlen(deviceprop.connection + 6);
 			break;
@@ -180,8 +180,8 @@ void netproperties(int state) {
 			        deviceprop.type, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
 			
 			getdeviceattributes(wdev, &deviceprop);
-			sprintf(tempoutput, "\n%s\nSSID: %s - %s%%\nIPv4 Address: %s\nIPv4 Gateway: %s\nIPv6 Address: %s\n",
-			        deviceprop.type, deviceprop.connection, deviceprop.state, deviceprop.ip4address, deviceprop.ip4gateway, deviceprop.ip6address);
+			sprintf(tempoutput, "\n%s\nSSID: %s - %s%%\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
+			        deviceprop.type, deviceprop.connection, deviceprop.state, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
 			if (strlen(deviceprop.connection + 6) > maxw)
 				maxw = strlen(deviceprop.connection + 6);
 			strcat(output,tempoutput);
@@ -195,36 +195,64 @@ void netproperties(int state) {
 
 	execl("/bin/dunstify", "dunstify", header, output, NULL);
 }
+void notifyproperties(int state) {
+	switch(fork()) {
+		case -1:perror("Failed in forking");
+			exit(EXIT_FAILURE);
+		case 0:	netproperties(state);
+			exit(EXIT_SUCCESS);
+		default:
+	}
+}
 
-void checkexec(int state) {
-	char *env = getenv("BLOCK_BUTTON");
-	int pid;
+void execst() {
+	switch(fork()) {
+		case -1:perror("Failed in forking");
+			exit(EXIT_FAILURE);
+		case 0:	setsid();
+			execv("/usr/local/bin/st", execnmtui);
+			exit(EXIT_SUCCESS);
+		default:
+	}	
+}
 
-	if (env == NULL)
-		return;
-	pid = fork();
-	if (pid)
-		return;
-
-	switch (env[0] - '0') {
-		case 1:	netproperties(state);
-			break;
-
-		case 2: execv("/usr/local/bin/st", execnmtui);
-			break;
-
-		case 3: pid = fork();
-			if (!pid) {
-				execl("/bin/dunstify", "dunstify", "       Network Manager", "Probing wifi access points...", NULL);
-				exit(EXIT_SUCCESS);
+void execdmenu() {
+	char *env;
+	switch(fork()) {
+		case -1:perror("Failed in forking");
+			exit(EXIT_FAILURE);
+		case 0:	switch(fork()) {
+				case -1:perror("Failed in forking");	
+					exit(EXIT_FAILURE);
+				case 0:	execl("/bin/dunstify", "dunstify", "       Network Manager", "Probing wifi access points...", NULL);
+					exit(EXIT_SUCCESS);
+				default:
 			}
 			env = getenv("HOME");
 			strcat(env, dmenuscriptpath);
 			execl(env, "dmenu-wifiprompt", NULL);
-			break;
-		default: break;
+			exit(EXIT_SUCCESS);
+		default:break;
 	}
-	exit(EXIT_SUCCESS);
+}
+
+void checkexec(int state) {
+	char *env;
+
+	if ((env = getenv("BLOCK_BUTTON"))== NULL)
+		return;
+
+	switch (env[0] - '0') {
+		case 1:	notifyproperties(state);
+			break;
+
+		case 2: execst();
+			break;
+
+		case 3: execdmenu();
+			break;
+		default:break;
+	}
 }
 
 int main(void) {

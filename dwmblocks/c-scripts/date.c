@@ -78,32 +78,48 @@ void getheader(char *header, int month, int year) {
 	strcat(header, temp);
 }
 
-void executebutton(int mday, int wday, int mon, int year) {
-	char *env = getenv("BLOCK_BUTTON");
-	int pid;
+void execcalendar(int mday, int wday, int mon, int year) {
+	char calendar[256];
+	char header[64];
 
-	if (env == NULL)
-		return;
+	switch (fork()) {
+		case -1:perror("Failed to fork");
+			exit(EXIT_FAILURE);
 
-	switch(env[0] - '0') {
-		case 1:	pid = fork();
-			if (pid)
-				return;
-
-			char calendar[256];
-			char header[64];
-
-			getheader(header, mon, year);
+		case 0:	getheader(header, mon, year);
 			getcalendar(calendar, mday, wday, mon, year);
 			execl("/bin/dunstify", "dunstify", header, calendar, NULL);
 			exit(EXIT_SUCCESS);
+		
+		default:
+	}
+}
 
-		case 3:	pid = fork();
-			if (pid)
-				return;
-			
+void execfirefox() {
+	switch (fork()) {
+		case -1:perror("Failed to fork");
+			exit(EXIT_FAILURE);
+
+		case 0:	setsid();
 			execl("/bin/firefox", "firefox", "--new-window", "https://calendar.google.com", NULL);
 			exit(EXIT_SUCCESS);
+		
+		default:
+	}
+}
+
+void executebutton(int mday, int wday, int mon, int year) {
+	char *env;
+
+	if ((env = getenv("BLOCK_BUTTON")) == NULL)
+		return;
+
+	switch(env[0] - '0') {
+		case 1:	execcalendar(mday, wday, mon, year);
+			return;
+			
+		case 3:	execfirefox();
+			return;
 
 		default: break;
 	}
