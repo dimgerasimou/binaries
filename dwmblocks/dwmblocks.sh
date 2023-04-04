@@ -1,8 +1,9 @@
 #!/bin/sh
 
 path="$HOME/.local/bin/dwmblocks"
-cscripts="date time kernel battery internet power memory"
-shscripts="keyboard spacer spacer-0 volume"
+cscripts="date time kernel battery internet power memory volume spacer"
+xscripts="keyboard"
+shscripts=""
 
 if [ "$1" == "uninstall" ]; then
 	echo "Deleting dwmblocks scripts."
@@ -12,6 +13,10 @@ if [ "$1" == "uninstall" ]; then
 	done
 
 	for script in $shscripts; do
+		rm -f $path/$script
+	done
+	
+	for script in $xscripts; do
 		rm -f $path/$script
 	done
 
@@ -37,6 +42,11 @@ mkdir -p $path
 
 for script in $cscripts; do
 	gcc -o $script $script.c -Os -Wall -lm
+	mv $script $path/
+done
+
+for script in $xscripts; do
+	gcc -I/usr/include -o $script $script.c -Os -Wall -lX11 -lxkbfile
 	mv $script $path/
 done
 

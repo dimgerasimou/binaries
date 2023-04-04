@@ -64,7 +64,7 @@ int isnumber(char* string) {
 	return 1;
 }
 
-void restartdwmblocks() {
+void killproccess(char *name) {
 	FILE *fp;
 	struct dirent** pidlist;
 	int funcret = scandir("/proc", &pidlist, NULL, alphasort);
@@ -90,24 +90,26 @@ void restartdwmblocks() {
 			}
 			fgets(buffer, sizeof(buffer), fp);
 			fclose(fp);
-			if (strstr(buffer, "dwmblocks") != NULL) {
+			if (strcmp(buffer, name) == 0) {
 				pid = strtol(pidlist[i]->d_name, NULL, 10);
 				break;
 			}
 		}
 	}
-
-	kill(pid, SIGTERM);
+	if (pid != -1)
+		kill(pid, SIGTERM);
 	freestruct(pidlist, funcret);
+}
+void restartdwmblocks() {
+	killproccess("dwmblocks");
 	switch (fork()) {
-		case -1:
-			perror("Failed in forking");
+		case -1:perror("Failed in forking");
 			exit(EXIT_FAILURE);
 
 		case 0:	setsid();
 			unsetenv("BLOCK_BUTTON");
 			execl("/usr/local/bin/dwmblocks", "dwmblocks", NULL);
-
+			exit(EXIT_FAILURE);
 
 		default:
 	}
@@ -115,9 +117,9 @@ void restartdwmblocks() {
 
 void executebutton() {
 	char *env = getenv("BLOCK_BUTTON");
-	char powermenu[] = " Shutdown\t0\n Reboot\t1\n Restart DwmBlocks\t2\n";
+	char powermenu[] = " Shutdown\t0\n Reboot\t1\n Restart DwmBlocks\t2\n󰗽 Logout\t3\n Lock\t4\n";
 	int pmsz=sizeof(powermenu);
-	char yesnoprompt[] = "yes\t1\nno\t0\n";
+	char yesnoprompt[] = "Yes\t1\nNo\t0\n";
 	int ynsz=sizeof(yesnoprompt);
 	if (env == NULL || env[0] != '1')
 		return;
@@ -133,6 +135,11 @@ void executebutton() {
 
 		case 2: restartdwmblocks();
 			break;
+
+		case 3: killproccess("/usr/local/bin/dwm");
+			break;
+
+		case 4: break;
 
 		default: break;
 	}
