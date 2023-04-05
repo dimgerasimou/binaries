@@ -1,7 +1,7 @@
 #!/bin/sh
 
 path="$HOME/.local/bin/dwmblocks"
-cscripts="date time kernel battery internet power memory volume spacer"
+cscripts="date time kernel battery internet power memory volume spacer mediacontrol"
 xscripts="keyboard"
 shscripts=""
 

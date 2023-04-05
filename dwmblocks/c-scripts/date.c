@@ -91,7 +91,7 @@ void execcalendar(int mday, int wday, int mon, int year) {
 			execl("/bin/dunstify", "dunstify", header, calendar, NULL);
 			exit(EXIT_SUCCESS);
 		
-		default:
+		default:break;
 	}
 }
 
@@ -104,7 +104,7 @@ void execfirefox() {
 			execl("/bin/firefox", "firefox", "--new-window", "https://calendar.google.com", NULL);
 			exit(EXIT_SUCCESS);
 		
-		default:
+		default:break;
 	}
 }
 
