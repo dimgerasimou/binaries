@@ -1,7 +1,7 @@
 #!/bin/sh
 
 path="$HOME/.local/bin/dwmblocks"
-cscripts="date time kernel battery internet power memory volume spacer mediacontrol"
+cscripts="date time kernel battery internet power memory volume spacer mediacontrol bluetooth bluetooth-menu"
 xscripts="keyboard"
 shscripts=""
 

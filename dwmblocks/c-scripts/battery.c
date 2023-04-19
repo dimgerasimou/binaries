@@ -50,6 +50,7 @@ void notifymode() {
 	pclose(ep);
 	execl("/bin/dunstify", "dunstify", "Optimus Manager mode", buffer, NULL);
 }
+
 void executebutton() {
 	char *env = getenv("BLOCK_BUTTON");
 

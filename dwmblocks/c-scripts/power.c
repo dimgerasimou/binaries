@@ -44,7 +44,6 @@ int printmenu(char *menu, int menusize) {
 			wait(NULL);
 			read(readpipe[0], buffer, sizeof(buffer));
 			close(readpipe[0]);
-			
 	}
 	if (buffer[0] != '\0')
 		sscanf(buffer, "%d", &option);
