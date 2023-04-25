@@ -19,4 +19,6 @@ setxkbmap -layout us,gr -option grp:win_space_toggle
 
 /usr/local/bin/dwmblocks &
 
+/usr/bin/xautolock -time 60 -locker "slock" &
+
 /usr/bin/dunst &

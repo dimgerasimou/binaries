@@ -99,6 +99,7 @@ void killproccess(char *name) {
 		kill(pid, SIGTERM);
 	freestruct(pidlist, funcret);
 }
+
 void restartdwmblocks() {
 	killproccess("dwmblocks");
 	switch (fork()) {
@@ -108,6 +109,20 @@ void restartdwmblocks() {
 		case 0:	setsid();
 			unsetenv("BLOCK_BUTTON");
 			execl("/usr/local/bin/dwmblocks", "dwmblocks", NULL);
+			exit(EXIT_FAILURE);
+
+		default:
+	}
+}
+
+void lock() {
+	switch (fork()) {
+		case -1:perror("Failed in forking");
+			exit(EXIT_FAILURE);
+
+		case 0:	setsid();
+			sleep(1);
+			execl("/usr/local/bin/slock", "slock", NULL);
 			exit(EXIT_FAILURE);
 
 		default:
@@ -124,23 +139,30 @@ void executebutton() {
 		return;
 
 	switch (printmenu(powermenu, pmsz)) {
-		case 0: if (printmenu(yesnoprompt, ynsz) == 1)
+		case 0:
+			if (printmenu(yesnoprompt, ynsz) == 1)
 				execl("/bin/shutdown", "shutdown", "now", NULL);
 			break;
 
-		case 1:	if (printmenu(yesnoprompt, ynsz) == 1)
+		case 1:
+			if (printmenu(yesnoprompt, ynsz) == 1)
 				execl("/bin/shutdown", "shutdown", "now", "-r", NULL);
 			break;
 
-		case 2: restartdwmblocks();
+		case 2:
+			restartdwmblocks();
 			break;
 
-		case 3: killproccess("/usr/local/bin/dwm");
+		case 3:
+			killproccess("/usr/local/bin/dwm");
 			break;
 
-		case 4: break;
+		case 4:
+			lock();
+			break;
 
-		default: break;
+		default:
+			break;
 	}
 }
 
