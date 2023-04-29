@@ -1,9 +1,11 @@
 #1/bin/sh
 
-if [ "$1" == "uninstall" ]; then
+if (($# != 0 )) && ( [[ "$1" != "uninstall" ]] || (($# > 1)) ); then
+	echo ""
         echo "Run with no arguments to install all scripts."
         echo "Options:"
-        echo "\t uninstall - Uninsltalls all scripts and removes the empty associated directories."
+        echo "        uninstall - Uninsltalls all scripts and removes the empty associated directories."
+	echo ""
         exit
 fi
 
