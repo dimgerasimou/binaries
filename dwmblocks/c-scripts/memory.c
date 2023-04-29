@@ -5,8 +5,6 @@
 
 #include "colorscheme.h"
 
-
-
 long calculateused() {
 	FILE *fp;
 	char buffer[128];
@@ -66,6 +64,6 @@ void executebutton() {
 
 int main(void) {
 	executebutton();
-	printf(CLR_3" %.1lfGiB"NRM"\n", ((calculateused())/1024.0)/1024.0);
+	printf(CLR_3"   %.1lfGiB"NRM"\n", ((calculateused())/1024.0)/1024.0);
 	return 0;
 }

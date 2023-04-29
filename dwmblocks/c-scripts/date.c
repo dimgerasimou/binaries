@@ -143,7 +143,7 @@ int main() {
   executebutton(localTime->tm_mday, localTime->tm_wday, localTime->tm_mon,
                 localTime->tm_year + 1900);
 
-  printf(CLR_1 " %02d/%02d" NRM "\n", localTime->tm_mday,
+  printf(CLR_1 "   %02d/%02d" NRM "\n", localTime->tm_mday,
          ++localTime->tm_mon);
   return 0;
 }

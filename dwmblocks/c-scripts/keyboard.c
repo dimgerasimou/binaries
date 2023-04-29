@@ -28,6 +28,6 @@ int main(void) {
 		}
 	}
 
-	printf(CLR_5" %s"NRM"\n", tok);
+	printf(CLR_5"   %s"NRM"\n", tok);
 	return 0;
 }

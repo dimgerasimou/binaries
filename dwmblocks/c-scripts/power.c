@@ -168,6 +168,6 @@ void executebutton() {
 
 int main(void) {
 	executebutton();
-	printf(CLR_1" "NRM"\n");
+	printf(CLR_1"  "NRM"\n");
 	return 0;
 }

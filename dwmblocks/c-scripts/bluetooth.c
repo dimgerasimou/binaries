@@ -89,7 +89,7 @@ int getaudio(char *address) {
 		return 0;
 	}
 	while(fgets(buf, sizeof(buf), ep) != NULL) {
-		if (strstr(buf, "Audio Sink") != NULL) {
+		if (strstr(buf, "audio-headset") != NULL) {
 			pclose(ep);
 			return 1;
 		}
@@ -104,7 +104,6 @@ int audiodevice() {
 	struct device *list = getcon(&size);
 	
 	for (int i = 0; i < size; i++) {
-		printf("Mac:%s, Name:%s\n", list[i].mac, list[i].name);
 		if (getaudio(list[i].mac))
 			isaudio = 1;
 	}
@@ -171,12 +170,12 @@ int main(void) {
 	execblock();
 
 	if (!getopstate()) {
-		printf(CLR_4 "󰂲" NRM "\n");
+		printf(CLR_4 " 󰂲" NRM "\n");
 	} else {
 		if (!audiodevice())
-			printf(CLR_4 "󰂯" NRM "\n");
+			printf(CLR_4 " 󰂯" NRM "\n");
 		else
-			printf(CLR_4 "󰥰" NRM "\n");
+			printf(CLR_4 " 󰥰" NRM "\n");
 	}
 	return EXIT_SUCCESS;
 }
