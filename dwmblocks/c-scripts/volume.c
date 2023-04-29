@@ -108,8 +108,6 @@ int main(void) {
 	int muted;
 	char icon[8];
 
-
-
 	volume = getaudioprop(&muted);
 	executebutton(volume, muted);
 	
