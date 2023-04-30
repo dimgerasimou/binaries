@@ -76,14 +76,14 @@ int geticon(char *icon) {
 	if ((fp = fopen(epath, "r")) != NULL) {
 		fscanf(fp, "%s", buffer);
 		if (strcmp(buffer, "up") == 0) {
-			strcpy(icon, CLR_4" 󰈁"NRM);
+			strcpy(icon, CLR_4"  󰈁  "NRM);
 			state += 1;
 		}
 		fclose(fp);
 	}
 	
 	if (!state) 
-		strcpy(icon, CLR_1 ""NRM);
+		strcpy(icon, CLR_1 "    "NRM);
 	return state;
 }
 
