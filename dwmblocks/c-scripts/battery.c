@@ -93,6 +93,6 @@ int main(void) {
        	fscanf(fp, "%d", &capacity);
         fclose(fp);
 
-	printf(" %s\n", baticons[lround(capacity/25.0)]);
+	printf("%s\n", baticons[lround(capacity/25.0)]);
 	return 0;
 }
