@@ -379,15 +379,19 @@ getentry(char *path)
 			if (strstr(buffer, "GenericName=") != NULL)
 				continue;
 			getnameexec(buffer, name, 0);
-			found = 1;
-			if (checkignoredentry(name))
+			if (checkignoredentry(name)) {
+				name[0] = '\0';
 				break;
+			}
+			if (found)
+				break;
+			found++;
 		}
 		if (strstr(buffer, "Exec=") != NULL) {
-			if (!found) 
-				break;
 			getnameexec(buffer, exec, 1);
-			break;
+			if (found)
+				break;
+			found++;
 		}
 	}
 	fclose(fp);
