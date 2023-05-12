@@ -493,8 +493,16 @@ prependapp(char *name)
 	char path[PATH_SIZE];
 	char temppath[PATH_SIZE];
 
-	cacheenv = getenv("XDG_CACHE_HOME");
-	strcpy(path, cacheenv);
+	if ((cacheenv = getenv("XDG_CACHE_HOME")) == NULL) {
+		if ((cacheenv = getenv("HOME")) == NULL) {
+			perror("Failed in getting the \"HOME\" environment variable");
+			exit(EXIT_FAILURE);
+		}
+		strcpy(path, cacheenv);
+		strcat(path, "/.cache");
+	} else {
+		strcpy(path, cacheenv);
+	}
 
 	for(int i = 0; i < cachepathsize; i++)
 		strcat(path, cachepath[i]);
