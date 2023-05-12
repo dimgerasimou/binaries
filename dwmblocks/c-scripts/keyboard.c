@@ -27,7 +27,12 @@ int main(void) {
 			return EXIT_FAILURE;
 		}
 	}
-
 	printf(CLR_5"   %s"NRM"\n", tok);
+	
+	if (vd.model != NULL) free(vd.model);
+	if (vd.layout != NULL) free(vd.layout);
+	if (vd.variant != NULL) free(vd.variant);
+	if (vd.options != NULL) free(vd.options);
+	XCloseDisplay(dpy);
 	return 0;
 }

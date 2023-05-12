@@ -109,7 +109,7 @@ void restartdwmblocks() {
 		case 0:	setsid();
 			unsetenv("BLOCK_BUTTON");
 			execl("/usr/local/bin/dwmblocks", "dwmblocks", NULL);
-			exit(EXIT_FAILURE);
+			exit(EXIT_SUCCESS);
 
 		default:
 	}
@@ -123,7 +123,7 @@ void lock() {
 		case 0:	setsid();
 			sleep(1);
 			execl("/usr/local/bin/slock", "slock", NULL);
-			exit(EXIT_FAILURE);
+			exit(EXIT_SUCCESS);
 
 		default:
 	}
