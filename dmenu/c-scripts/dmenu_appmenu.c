@@ -152,7 +152,6 @@ entriesfromfile()
 					return entriestostr();
 				}
 			default:
-		}
 	}
 
 	strcat(path, cachepath[cachepathsize - 1]);
