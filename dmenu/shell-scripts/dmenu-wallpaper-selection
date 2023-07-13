@@ -1,6 +1,6 @@
 #!/bin/sh
 
-wallpaper="$(ls $HOME/Pictures/Wallpapers | dmenu -c -l 10 -p "Select your wallpaper:")"
+wallpaper="$(ls $HOME/.local/share/wallpapers | dmenu -c -l 10 -p "Select your wallpaper:")"
 
 if [[ $wallpaper == "" ]]; then
 	exit
@@ -9,11 +9,11 @@ extension="$(cut -d "." -f2 <<<"$wallpaper")"
 mkdir -p $HOME/.local/state/dwm
 if [[ $extension != "jpg" ]]; then
 	filename="$(cut -d "." -f1 <<<"$wallpaper")"
-	cd $HOME/Pictures/Wallpapers
+	cd $HOME/.local/share/wallpapers
 	mogrify -format jpg $wallpaper
-	mv $filename.jpg $HOME/.local/state/dwm/Wallpaper.jpg
+	mv $filename.jpg $HOME/.local/state/dwm/wallpaper.jpg
 else
-	cp $HOME/Pictures/Wallpapers/$wallpaper $HOME/.local/state/dwm/Wallpaper.jpg
+	cp $HOME/.local/share/wallpapers/$wallpaper $HOME/.local/state/dwm/wallpaper.jpg
 fi
 pkill -SIGTERM feh
-feh --bg-fill $HOME/.local/state/dwm/Wallpaper.jpg &
+feh --bg-fill $HOME/.local/state/dwm/wallpaper.jpg &

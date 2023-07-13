@@ -9,7 +9,8 @@ These are the binaries that i use with my own dwm - suckless installation.
 ### dmenu
  - dmenu
  - feh
- - nmcli
+ - imagemagick
+ - networkmanager
 
 ### dwm
  - dwm
@@ -28,6 +29,9 @@ In autostart:
 
 ### dwmblocks
 Most of them are for clickable functions.
+ - libnotify
+
+
  - dmenu
  - dwm with nerd icons support and status2d patch
  - optimus-manager
