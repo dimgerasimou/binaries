@@ -8,7 +8,7 @@ setxkbmap -layout us,gr -option grp:win_space_toggle
 
 (sleep 0.5 && (nohup easyeffects --gapplication-service &)) &
 
-(sleep 0.2 && (feh --bg-fill $HOME/.local/state/dwm/Wallpaper.jpg)) &
+(sleep 0.2 && (feh --bg-fill $HOME/.local/state/dwm/wallpaper.jpg)) &
 
 (sleep 0.2 && (/usr/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.8)) &
 (sleep 0.2 && (/usr/bin/wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 1)) &
