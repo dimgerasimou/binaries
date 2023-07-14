@@ -26,16 +26,43 @@ void updatecounter(int *aur, int *pacman) {
 	*pacman = checkupdates("/bin/checkupdates");
 }
 
+void getheader(char *str, char *body, char *output) {
+	int lcount = 0;
+	int mcount = 0;
+	
+	strcpy(output, "");
+	for (int i = 0; i < strlen(body); i++) {
+		if (body[i] == '\n') {
+			if (lcount > mcount)
+				mcount = lcount;
+			lcount = 0;
+		}
+		lcount++;
+	}
+	if (lcount > mcount)
+		mcount = lcount;
+	mcount-=strlen(str);
+	mcount-=2;
+	mcount/=2;
+
+	for (int i = 0; i < mcount; i++)
+		strcat(output, " ");
+	strcat(output, str);
+}
+
 void sendmessage(int aur, int pacman) {
 	char message[64];
+	char header[128];
 	
 	sprintf(message, "󰏖 Pacman Updates: %d\n AUR Updates: %d", pacman, aur);
+	getheader("Packages", message, header);
+
 	switch (fork()) {
 		case -1:
 			perror("Failed to fork");
 			exit(EXIT_FAILURE);
 
-		case 0:	execl("/bin/dunstify", "dunstify", "     Packages", message, "--icon=tux", NULL);
+		case 0:	execl("/bin/dunstify", "dunstify", header, message, "--icon=tux", NULL);
 			exit(EXIT_SUCCESS);
 		
 		default:

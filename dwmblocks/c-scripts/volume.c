@@ -51,9 +51,37 @@ void execeasyeffects() {
         }
 }
 
+void getheader(char *str, char *body, char *output) {
+	int lcount = 0;
+	int mcount = 0;
+	
+	strcpy(output, "");
+	for (int i = 0; i < strlen(body); i++) {
+		if (body[i] == '\n') {
+			if (lcount > mcount)
+				mcount = lcount;
+			lcount = 0;
+		}
+		lcount++;
+	}
+	if (lcount > mcount)
+		mcount = lcount;
+	mcount-=strlen(str);
+	mcount/=2;
+
+	for (int i = 0; i < mcount; i++)
+		strcat(output, " ");
+	strcat(output, str);
+
+	//for (int i = 0; i < mcount; i++)
+	//	strcat(output, " ");
+}
+
+
 void notifyproperties(int volume, int muted) {
 	FILE *ep;
 	char buffer[64];
+	char header[128];
 	int micvol;
 	int micmuted;
 
@@ -74,10 +102,11 @@ void notifyproperties(int volume, int muted) {
 	pclose(ep);
 	
 	sprintf(buffer, " Volume: %3d%%, Muted?: %d\n Volume: %3d%%, Muted?: %d\n", volume, muted, micvol, micmuted);
+	getheader("Wireplumber", buffer, header);
 	switch(fork()) {
                 case -1:perror("Failed in forking");
                         exit(EXIT_FAILURE);
-                case 0: execl("/bin/dunstify", "dunstify", "   Wireplumber", buffer, NULL);
+		case 0: execl("/bin/dunstify", "dunstify", header, buffer, "--icon=audio-headphones", NULL);
                         exit(EXIT_SUCCESS);
                 default:
         }
