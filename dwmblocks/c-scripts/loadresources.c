@@ -52,23 +52,27 @@ int parsestring(char *input) {
 	int colorindex = -1;
 	char col[8];
 
-	if (strstr(input, "*color") == NULL)
+	if (strstr(input, "*.color") == NULL)
 		return -1;
 	
 	for (int i=0; i < strlen(input); i++)
 		if(input[i] == '#')
 			colorindex = i;
 
-	if (colorindex == -1)
+	if (colorindex == -1) {
+		fprintf(stderr, "parsestring:No color found in string %s\n", input);
 		return 0;
-
-	index = input[6] - '0';
-	if (index == 1 && ((input[7] >= '0'  && (input[7] <= '9')))) {
-		index *= 10;
-		index += input[7] - '0';
 	}
-	if (index >= COLOR_COUNT)
+
+	index = input[7] - '0';
+	if (index == 1 && ((input[8] >= '0'  && (input[8] <= '9')))) {
+		index *= 10;
+		index += input[8] - '0';
+	}
+	if (index >= COLOR_COUNT) {
+		fprintf(stderr, "parsestring:index %d out of bounds (bound:%d)\n", index, COLOR_COUNT);
 		return 0;
+	}
 
 	for(int i=0; i < 7; i++) 
 		col[i] = input[i + colorindex];
@@ -97,13 +101,15 @@ int checkcolors() {
 
 int parsefile() {
 	FILE *fp;
-	char *path;
+	char *env;
+	char path[256];
 	char input[512];
 
-	if (strcmp(path = getenv("HOME"), "") == 0) {
+	if (strcmp(env = getenv("HOME"), "") == 0) {
 		perror("Could not get \"HOME\" enviroment");
 		return EXIT_FAILURE;
 	}
+	strcpy(path, env);
 	strcat(path, XRESOURCES_PATH);
 
 	if ((fp = fopen(path, "r")) == NULL) {
@@ -126,6 +132,9 @@ int parsefile() {
 	fclose(fp);
 
 	if (!checkcolors()) {
+		for (int i =0; i < 16; i++) {
+			puts(colors[i]);
+		}
 		freecolors();
 		puts("Wrong color format and/or data");
 		return 0;
@@ -145,6 +154,7 @@ void printfile(char** clrsource) {
 int main(void) {
 	if (parsefile()) {
 		printfile(colors);
+		puts("Applying colorscheme from ~/.Xresources");
 		freecolors();
 	} else {
 		puts("Applying default colorscheme");

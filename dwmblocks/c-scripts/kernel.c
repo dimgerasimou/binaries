@@ -70,8 +70,8 @@ int main() {
         }
 	release = strtok(buffer.release, "-");
 	if ((aurupdates + pacmanupdates) > 0)
-		printf(CLR_4"  󰏖 %d  %s"NRM"\n", aurupdates + pacmanupdates, release);
+		printf(CLR_12"  󰏖 %d  %s"NRM"\n", aurupdates + pacmanupdates, release);
 	else
-		printf(CLR_4"   %s"NRM"\n", release);
+		printf(CLR_12"   %s"NRM"\n", release);
         return 0;
 }

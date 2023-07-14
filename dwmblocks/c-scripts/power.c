@@ -131,7 +131,7 @@ void lock() {
 
 void executebutton() {
 	char *env = getenv("BLOCK_BUTTON");
-	char powermenu[] = " Shutdown\t0\n Reboot\t1\n Restart DwmBlocks\t2\n󰗽 Logout\t3\n Lock\t4\n";
+	char powermenu[] = " Shutdown\t0\n Reboot\t1\n Restart DwmBlocks\t2\n󰗽 Logout\t3\n Lock\t4";
 	int pmsz=sizeof(powermenu);
 	char yesnoprompt[] = "Yes\t1\nNo\t0\n";
 	int ynsz=sizeof(yesnoprompt);
