@@ -5,34 +5,47 @@
 #include <math.h>
 #include "colorscheme.h"
 
-
 char *baticons[] = { CLR_1" "NRM, CLR_3" "NRM, CLR_2" "NRM, CLR_2" "NRM, CLR_2" "NRM };
 
-void parsemode(char *input) {
-	char mode[64];
-	char *temp;
+int fileinpath(char *name) {
+	char *env;
+	char execpath[256];
+	int subpathcount = 1;
+	int i = 0, j = 0;
 
-	mode[0] = '\0';
-	if ((temp = strchr(input, ':')) == NULL) {
-		perror("Could not get format");
-		input[0] = '\0';
-		return;
+	env = getenv("PATH");
+
+	for (int k = 0; k < strlen(env); k++) {
+		if (env[k] == ':')
+			subpathcount++;
 	}
-	temp += 2;
-	temp[0] += ('A' - 'a'); /* capitilize first letter */
-	for (int i=0; temp[i] != '\0'; i++) {
-		if (temp[i] == ' ' || temp[i] == '\n') {
-			temp[i] = '\0';
-			break;
+
+	char paths[subpathcount][128];
+	
+	for (int k = 0; k < strlen(env); k++) {
+		if (j == 128 || i == subpathcount) {
+			perror("fileinpath: indexes out of bounds");
+			exit(EXIT_FAILURE);
 		}
+		if (env[k] == ':') {
+			i++;
+			j = 0;
+			continue;
+		}
+		paths[i][j] = env[k];
+		j++;
 	}
-	for(int i=0; i < (20 - strlen(temp)) / 2; i++) /* padding for space overfill */
-		strcat(mode, " ");
-	strcat(mode, temp);
-	strcpy(input, mode);
+	
+	for (i = 0; i < subpathcount; i++) {
+		strcpy(execpath, paths[i]);
+		strcat(execpath, name);
+		if (access(execpath, F_OK) == 0)
+			return 1;
+	}
+	return 0;
 }
 
-void notifymode() {
+void getoptimusmode(char *mode, char *icon) {
 	FILE *ep;
 	char buffer[64];
 
@@ -43,20 +56,72 @@ void notifymode() {
 
 	while(fgets(buffer, 64, ep) != NULL) {
 		if (strstr(buffer, "Current") != NULL) {
-			parsemode(buffer);
 			break;
 		}
 	}
-	if (strstr(buffer, "Integrated") != NULL) 
-		execl("/bin/dunstify", "dunstify", "Optimus Manager mode", "Integrated", "--icon=intel", NULL);
-	else if (strstr(buffer, "Integrated") != NULL) 
-		execl("/bin/dunstify", "dunstify", "Optimus Manager mode", "Nvidia", "--icon=nvidia", NULL);
-	else
-		execl("/bin/dunstify", "dunstify", "Optimus Manager mode", "Optimus Manager not enabled.", NULL);
+
+	if (strstr(buffer, "integrated") != NULL) {
+		strcpy(mode, "Optimus Manager: Integrated");
+		strcpy(icon, "--icon=intel");
+	} else if (strstr(buffer, "hybrid") != NULL) {
+		strcpy(mode, "Optimus Manager: Hybrid");
+		strcpy(icon, "--icon=deepin-graphics-driver-manager");
+	} else if (strstr(buffer, "nvidia") != NULL) {
+		strcpy(mode, "Optimus Manager: Nvidia");
+		strcpy(icon, "--icon=nvidia");
+	} else {
+		strcpy(mode, "Optimus Manager: Unmanaged");
+	}
 	pclose(ep);
 }
 
-void executebutton() {
+void getenvymode(char *mode, char *icon) {
+	FILE *ep;
+	char buffer[64];
+
+	if ((ep = popen("envycontrol -q", "r")) == NULL) {
+		perror("Failed to execute optimus-manager");
+		exit(EXIT_FAILURE);
+	}
+
+	fgets(buffer, 64, ep);
+	pclose(ep);
+
+	if (strstr(buffer, "integrated") != NULL) {
+		strcpy(mode, "Envy Control: Integrated");
+		strcpy(icon, "--icon=intel");
+	} else if (strstr(buffer, "hybrid") != NULL) {
+		strcpy(mode, "Envy Control: Hybrid");
+		strcpy(icon, "--icon=deepin-graphics-driver-manager");
+	} else if (strstr(buffer, "nvidia") != NULL) {
+		strcpy(mode, "Envy Control: Nvidia");
+		strcpy(icon, "--icon=nvidia");
+	} else {
+		strcpy(mode, "Envy Control: Unmanaged");
+	}
+}
+
+void notify(int capacity) {
+	char stringout[256];
+	char mode[64];
+	char icon[64];
+
+	strcpy(icon, "");
+	sprintf(stringout, "Battery capacity: %d%%\n", capacity);
+
+	if (fileinpath("/optimus-manager"))
+		getoptimusmode(mode, icon);
+	else if (fileinpath("/envycontrol"))
+		getenvymode(mode, icon);
+	else
+		strcpy(mode, "Optimus: Not managed");
+
+	strcat(stringout, mode);
+
+	execl("/bin/dunstify", "dunstify", "Power", stringout, icon, NULL);
+}
+
+void executebutton(int capacity) {
 	char *env = getenv("BLOCK_BUTTON");
 
 	if (env != NULL && strcmp(env, "1") == 0) {
@@ -64,7 +129,7 @@ void executebutton() {
 			case -1:perror("Failed in fork");
 				exit(EXIT_FAILURE);
 
-			case 0:	notifymode();
+			case 0:	notify(capacity);
 				exit(EXIT_SUCCESS);
 
 			default:break;
@@ -76,8 +141,15 @@ int main(void) {
 	FILE *fp;
 	int capacity;
 	char status[64];
+
+	if ((fp = fopen("/sys/class/power_supply/BAT1/capacity", "r")) == NULL) {
+		perror("Failed to read \"/sys/class/power_supply/BAT1/capacity\"");
+		return EXIT_FAILURE;
+        }
+       	fscanf(fp, "%d", &capacity);
+        fclose(fp);
 	
-	executebutton();
+	executebutton(capacity);
 
 	if ((fp = fopen("/sys/class/power_supply/BAT1/status", "r")) == NULL) {
 		perror("Failed to read \"/sys/class/power_supply/BAT1/status\"");
@@ -91,13 +163,6 @@ int main(void) {
 		return EXIT_SUCCESS;
 	}
 	
-	if ((fp = fopen("/sys/class/power_supply/BAT1/capacity", "r")) == NULL) {
-		perror("Failed to read \"/sys/class/power_supply/BAT1/capacity\"");
-		return EXIT_FAILURE;
-        }
-       	fscanf(fp, "%d", &capacity);
-        fclose(fp);
-
 	printf("%s\n", baticons[lround(capacity/25.0)]);
 	return 0;
 }
