@@ -35,7 +35,7 @@ void sendmessage(int aur, int pacman) {
 			perror("Failed to fork");
 			exit(EXIT_FAILURE);
 
-		case 0:	execl("/bin/dunstify", "dunstify", "     Packages", message, NULL);
+		case 0:	execl("/bin/dunstify", "dunstify", "     Packages", message, "--icon=tux", NULL);
 			exit(EXIT_SUCCESS);
 		
 		default:

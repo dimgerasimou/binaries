@@ -47,8 +47,13 @@ void notifymode() {
 			break;
 		}
 	}
+	if (strstr(buffer, "Integrated") != NULL) 
+		execl("/bin/dunstify", "dunstify", "Optimus Manager mode", "Integrated", "--icon=intel", NULL);
+	else if (strstr(buffer, "Integrated") != NULL) 
+		execl("/bin/dunstify", "dunstify", "Optimus Manager mode", "Nvidia", "--icon=nvidia", NULL);
+	else
+		execl("/bin/dunstify", "dunstify", "Optimus Manager mode", "Optimus Manager not enabled.", NULL);
 	pclose(ep);
-	execl("/bin/dunstify", "dunstify", "Optimus Manager mode", buffer, NULL);
 }
 
 void executebutton() {

@@ -193,7 +193,7 @@ void netproperties(int state) {
 		strcat(header, " ");
 	strcat(header, headermessage);	
 
-	execl("/bin/dunstify", "dunstify", header, output, NULL);
+	execl("/bin/dunstify", "dunstify", header, output, "--icon=tdenetworkmanager", NULL);
 }
 void notifyproperties(int state) {
 	switch(fork()) {

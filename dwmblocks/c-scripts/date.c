@@ -91,7 +91,7 @@ void execcalendar(int mday, int wday, int mon, int year) {
   case 0:
     getheader(header, mon, year);
     getcalendar(calendar, mday, wday, mon, year);
-    execl("/bin/dunstify", "dunstify", header, calendar, NULL);
+    execl("/bin/dunstify", "dunstify", header, calendar, "--icon=calendar", NULL);
     exit(EXIT_SUCCESS);
 
   default:
