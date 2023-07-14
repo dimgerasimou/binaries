@@ -123,8 +123,8 @@ void getheader(char *str, char *body, char *output) {
 		strcat(output, " ");
 	strcat(output, str);
 
-	for (int i = 0; i < mcount; i++)
-		strcat(output, " ");
+	//for (int i = 0; i < mcount; i++)
+	//	strcat(output, " ");
 }
 
 void notify(int capacity, char *status) {
