@@ -101,13 +101,40 @@ void getenvymode(char *mode, char *icon) {
 	}
 }
 
-void notify(int capacity) {
+void getheader(char *str, char *body, char *output) {
+	int lcount = 0;
+	int mcount = 0;
+	
+	strcpy(output, "");
+	for (int i = 0; i < strlen(body); i++) {
+		if (body[i] == '\n') {
+			if (lcount > mcount)
+				mcount = lcount;
+			lcount = 0;
+		}
+		lcount++;
+	}
+	if (lcount > mcount)
+		mcount = lcount;
+	mcount-=strlen(str);
+	mcount/=2;
+
+	for (int i = 0; i < mcount; i++)
+		strcat(output, " ");
+	strcat(output, str);
+
+	for (int i = 0; i < mcount; i++)
+		strcat(output, " ");
+}
+
+void notify(int capacity, char *status) {
 	char stringout[256];
-	char mode[64];
+	char mode[64]; 
 	char icon[64];
+	char header[256];
 
 	strcpy(icon, "");
-	sprintf(stringout, "Battery capacity: %d%%\n", capacity);
+	sprintf(stringout, "Battery capacity: %d%%\nBattery status: %s", capacity, status);
 
 	if (fileinpath("/optimus-manager"))
 		getoptimusmode(mode, icon);
@@ -118,18 +145,22 @@ void notify(int capacity) {
 
 	strcat(stringout, mode);
 
-	execl("/bin/dunstify", "dunstify", "Power", stringout, icon, NULL);
+	getheader("Power", stringout, header);
+
+	execl("/bin/dunstify", "dunstify", header, stringout, icon, NULL);
 }
 
-void executebutton(int capacity) {
+void executebutton(int capacity, char *status) {
 	char *env = getenv("BLOCK_BUTTON");
 
 	if (env != NULL && strcmp(env, "1") == 0) {
 		switch (fork()) {
-			case -1:perror("Failed in fork");
+			case -1:
+				perror("Failed in fork");
 				exit(EXIT_FAILURE);
 
-			case 0:	notify(capacity);
+			case 0:
+				notify(capacity, status);
 				exit(EXIT_SUCCESS);
 
 			default:break;
@@ -148,16 +179,16 @@ int main(void) {
         }
        	fscanf(fp, "%d", &capacity);
         fclose(fp);
-	
-	executebutton(capacity);
 
 	if ((fp = fopen("/sys/class/power_supply/BAT1/status", "r")) == NULL) {
 		perror("Failed to read \"/sys/class/power_supply/BAT1/status\"");
 		return EXIT_FAILURE;
         }
-        fscanf(fp, "%s", status);
+        fgets(status, 64, fp);
 	fclose(fp);
 	
+	executebutton(capacity, status);
+
 	if(strcmp(status, "Charging") == 0) {
 		printf(CLR_3""NRM"\n");
 		return EXIT_SUCCESS;
