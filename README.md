@@ -7,22 +7,20 @@ These are the binaries that i use with my own dwm - suckless installation.
 ## Dependencies
 
 ### dmenu
- - dmenu
  - feh
  - imagemagick
  - networkmanager
 
 ### dwm
- - dwm
  - dwmblocks
- - wpctl
- - xmenu
+ - wireplumber
+ - xmenu (git)
  - scrot
 
 In autostart:
  - picom
  - easyeffects
- - polkit-mate-authentication-agent-1
+ - mate-polkit
  - emacs
  - xautolock
  - dunst
@@ -30,23 +28,20 @@ In autostart:
 ### dwmblocks
 Most of them are for clickable functions.
  - libnotify
-
-
- - dmenu
- - dwm with nerd icons support and status2d patch
- - optimus-manager
+ - dmenu (git)
+ - dwm with nerd icons support and status2d patch (git)
+ - optimus-manager or envycontrol (optional)
  - dunst
- - xmenu
- - bluetoothctl
- - st
- - bluetuith
+ - xmenu (git)
+ - st (git)
  - firefox
- - nmtui
- - nmcli
- - paru
- - checkupdates
+ - networkmanager
  - libx11
- - slock
+ - slock (git)
+ - paru (AUR)
  - pulsemixer
+ - wireplumber
+ - bluez-utils
+ - bluetuith (AUR)
+ - pacman-contrib
  - easyeffetcs
- - wpctl
