@@ -18,6 +18,8 @@ struct devprop {
 	char ip6address[32];
 };
 
+
+char *iconarray[] = {"--icon=x", "--icon=tdenetworkmanager", "--icon=wifi-radar", "--icon=tdenetworkmanager"};
 char *execnmtui[] = {"st", "-e", "nmtui", NULL};
 char dmenuscriptpath[] = "/.local/bin/dmenu/dmenu-wifiprompt";
 
@@ -38,7 +40,7 @@ void getnames(char *edev, char *wdev) {
         }
 	(void) closedir (dp);
 }
-
+/* 
 void getpaths(char *epath, char *wpath) {
 	char temp[128];
 	char edev[8];
@@ -54,36 +56,41 @@ void getpaths(char *epath, char *wpath) {
 	strcat(temp, wdev);
 	strcat(temp, "/operstate");
 	strcpy(wpath, temp);
-}
+} */
 
 int geticon(char *icon) {
-	FILE *fp;
-	char epath[128];
-	char wpath[128];
+	FILE *ep;
+	char edev[32];
+	char wdev[32];
 	char buffer[128];
 	int state = 0;
 	
-	getpaths(epath, wpath);
-	if ((fp = fopen(wpath, "r")) != NULL) {
-		fscanf(fp, "%s", buffer);
-		if (strcmp(buffer, "up") == 0) {
-			strcpy(icon, CLR_6"  󰤨  "NRM);
-			state += 2;
+	getnames(edev, wdev);
+	if ((ep = popen("nmcli device", "r")) == NULL)
+		return 0;
+	while (fgets(buffer, 128, ep) != NULL) {
+		if (strstr(buffer, edev) != NULL) {
+			if(strstr(buffer, "connected") != NULL) {
+				if (strstr(buffer, "disconnected") == NULL)
+					state += 1;
+			}
 		}
-		fclose(fp);
-	}
+		if (strstr(buffer, wdev) != NULL) {
+			if(strstr(buffer, "connected") != NULL) {
+				if (strstr(buffer, "disconnected") == NULL)
+					state += 2;
+			}
+		}
 
-	if ((fp = fopen(epath, "r")) != NULL) {
-		fscanf(fp, "%s", buffer);
-		if (strcmp(buffer, "up") == 0) {
-			strcpy(icon, CLR_6"  󰈁  "NRM);
-			state += 1;
-		}
-		fclose(fp);
 	}
-	
 	if (!state) 
 		strcpy(icon, CLR_9"    "NRM);
+	else if (state == 2)
+		strcpy(icon, CLR_6"  󰤨  "NRM);
+	else if (state == 1 || state == 3)
+		strcpy(icon, CLR_6"  󰈁  "NRM);
+	else
+	 	strcpy(icon, "NULL");
 	return state;
 }
 
@@ -158,24 +165,28 @@ void netproperties(int state) {
 
 	getnames(edev, wdev);
 	switch (state) {
-		case 0:	strcpy(output, "Network Disconnected");
+		case 0:
+			strcpy(output, "Network Disconnected");
 			maxw=20;
 			break;
 
-		case 1:	getdeviceattributes(edev, &deviceprop);
-			sprintf(output, "%s\n\nIPv4 Address: %s\nIPv6 Address: %s\n\nIPv4 Gateway: %s\n",
+		case 1:
+			getdeviceattributes(edev, &deviceprop);
+			sprintf(output, "%s\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
 			        deviceprop.type, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
 			break;
 
-		case 2:	getdeviceattributes(wdev, &deviceprop);
+		case 2:
+			getdeviceattributes(wdev, &deviceprop);
 			puts(wdev);
-			sprintf(output, "%s\nSSID: %s - %s%%\n\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
+			sprintf(output, "%s\nSSID: %s - %s%%\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
 			        deviceprop.type, deviceprop.connection, deviceprop.state, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
 			if (strlen(deviceprop.connection + 6) > maxw)
 				maxw = strlen(deviceprop.connection + 6);
 			break;
 
-		case 3:	getdeviceattributes(edev, &deviceprop);
+		case 3:
+			getdeviceattributes(edev, &deviceprop);
 			sprintf(output, "%s\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
 			        deviceprop.type, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
 			
@@ -186,53 +197,64 @@ void netproperties(int state) {
 				maxw = strlen(deviceprop.connection + 6);
 			strcat(output,tempoutput);
 			break;
-		default: break;
+		default:
+			break;
 	}
 
 	for (int i=0; i < (maxw - strlen(headermessage)) / 2; i++)
 		strcat(header, " ");
 	strcat(header, headermessage);	
 
-	execl("/bin/dunstify", "dunstify", header, output, "--icon=tdenetworkmanager", NULL);
+	execl("/bin/dunstify", "dunstify", header, output, iconarray[state], NULL);
 }
 void notifyproperties(int state) {
 	switch(fork()) {
-		case -1:perror("Failed in forking");
+		case -1:
+			perror("Failed in forking");
 			exit(EXIT_FAILURE);
-		case 0:	netproperties(state);
+		case 0:	
+			netproperties(state);
 			exit(EXIT_SUCCESS);
 		default:
+			break;
 	}
 }
 
 void execst() {
 	switch(fork()) {
-		case -1:perror("Failed in forking");
+		case -1:
+			perror("Failed in forking");
 			exit(EXIT_FAILURE);
-		case 0:	setsid();
+		case 0:	
+			setsid();
 			execv("/usr/local/bin/st", execnmtui);
 			exit(EXIT_SUCCESS);
 		default:
+			break;
 	}	
 }
 
 void execdmenu() {
 	char *env;
 	switch(fork()) {
-		case -1:perror("Failed in forking");
+		case -1:
+			perror("Failed in forking");
 			exit(EXIT_FAILURE);
-		case 0:	switch(fork()) {
+		case 0:
+			switch(fork()) {
 				case -1:perror("Failed in forking");	
 					exit(EXIT_FAILURE);
 				case 0:	execl("/bin/dunstify", "dunstify", "       Network Manager", "Probing wifi access points...", NULL);
 					exit(EXIT_SUCCESS);
 				default:
+					break;
 			}
 			env = getenv("HOME");
 			strcat(env, dmenuscriptpath);
 			execl(env, "dmenu-wifiprompt", NULL);
 			exit(EXIT_SUCCESS);
-		default:break;
+		default:
+			break;
 	}
 }
 
