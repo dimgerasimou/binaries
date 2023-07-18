@@ -22,3 +22,5 @@ setxkbmap -layout us,gr -option grp:win_space_toggle
 /usr/bin/xautolock -time 60 -locker "slock" &
 
 /usr/bin/dunst &
+
+/usr/bin/systemctl --user import-environment DISPLAY

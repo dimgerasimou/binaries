@@ -7,26 +7,31 @@ These are the binaries that i use with my own dwm - suckless installation.
 ## Dependencies
 
 ### dmenu
+
  - feh
  - imagemagick
  - networkmanager
 
 ### dwm
+
  - dwmblocks
  - wireplumber
  - xmenu (git)
  - scrot
 
 In autostart:
+
  - picom
  - easyeffects
  - mate-polkit
  - emacs
  - xautolock
  - dunst
+ - clipmenu (git)
 
 ### dwmblocks
 Most of them are for clickable functions.
+
  - libnotify
  - dmenu (git)
  - dwm with nerd icons support and status2d patch (git)
