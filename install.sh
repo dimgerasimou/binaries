@@ -1,4 +1,4 @@
-#1/bin/sh
+#!/bin/sh
 
 if (($# != 0 )) && ( [[ "$1" != "uninstall" ]] || (($# > 1)) ); then
 	echo ""

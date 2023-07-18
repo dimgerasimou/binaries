@@ -134,7 +134,7 @@ void notify(int capacity, char *status) {
 	char header[256];
 
 	strcpy(icon, "");
-	sprintf(stringout, "Battery capacity: %d%%\nBattery status: %s", capacity, status);
+	sprintf(stringout, "Battery capacity: %d%%\nBattery status: %s\n", capacity, status);
 
 	if (fileinpath("/optimus-manager"))
 		getoptimusmode(mode, icon);
@@ -186,7 +186,11 @@ int main(void) {
         }
         fgets(status, 64, fp);
 	fclose(fp);
-	
+	for (int i = 0; i < strlen(status); i++) {
+		if (status[i] == '\n')
+			status[i] = '\0';
+	}
+		
 	executebutton(capacity, status);
 
 	if(strcmp(status, "Charging") == 0) {
