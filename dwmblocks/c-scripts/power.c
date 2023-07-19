@@ -131,6 +131,23 @@ void lock() {
 	}
 }
 
+void notify(char *header, char *body, char *iconname) {
+	char icon[512];
+	strcpy(icon, "--icon=");
+	strcat(icon, iconname);
+	switch (fork()) {
+		case -1:
+			perror("Failed in forking");
+			exit(EXIT_FAILURE);
+		case 0:
+			execl("/bin/dunstify", "dunstify", header, body, icon, NULL);
+			exit(EXIT_SUCCESS);
+		default:
+			break;
+	}
+
+}
+
 void clippause() {
 	switch (fork()) {
 		case -1:
@@ -139,10 +156,10 @@ void clippause() {
 		case 0:
 			setsid();
 			system("clipctl disable");
-			execl("/bin/dunstify", "dunstify", "       Clipboard", "clipmenu is now disabled.", "--icon=com.github.davidmhewitt.clipped", NULL);
+			notify("       Clipboard", "clipmenu is now disabled.", "com.github.davidmhewitt.clipped");
 			sleep(60);
 			system("clipctl enable");
-			execl("/bin/dunstify", "dunstify", "       Clipboard", "clipmenu is now enabled.", "--icon=com.github.davidmhewitt.clipped", NULL);
+			notify("       Clipboard", "clipmenu is now enabled.", "com.github.davidmhewitt.clipped");
 			exit(EXIT_SUCCESS);
 		default:
 			break;
