@@ -1,6 +1,0 @@
-#!/bin/sh
-
-cat <<EOF | xmenu
-Yes	0
-No	1
-EOF

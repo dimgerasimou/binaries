@@ -1,8 +1,0 @@
-#!/bin/sh
-
-cat <<EOF | xmenu
- Shutdown        	0
- Reboot          	1
-󰇄 Restart Dwm     	2
- Restart DwmBlocks	3
-EOF

@@ -163,7 +163,8 @@ void executebutton(int capacity, char *status) {
 				notify(capacity, status);
 				exit(EXIT_SUCCESS);
 
-			default:break;
+			default:
+				break;
 		}
 	}
 }

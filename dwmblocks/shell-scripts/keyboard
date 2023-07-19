@@ -1,7 +1,0 @@
-#!/bin/sh
-
-case $BLOCK_BUTTON in
-	1)	$HOME/.local/bin/dwm/swaplanguage;;
-esac
-
-printf "^c#F5C2E7^ %s^d^\n" "$(xkblayout-state print "%s")"

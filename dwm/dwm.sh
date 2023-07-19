@@ -1,7 +1,7 @@
 #!/bin/bash
 
-compiledscripts="audiocontrol mediacontrol"
-shellscripts="autostart.sh layoutmenu swaplanguage takescreenshot"
+compiledscripts="audiocontrol mediacontrol takescreenshot"
+shellscripts="autostart.sh layoutmenu swaplanguage"
 path="$HOME/.local/bin/dwm"
 
 if [ "$1" == "uninstall" ]; then

@@ -1,6 +1,0 @@
-#!/bin/sh
-
-mkdir -p $HOME/Pictures/Screenshots
-cd $HOME/Pictures/Screenshots
-scrot
-notify-send "Screenshot taken"
