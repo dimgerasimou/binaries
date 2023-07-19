@@ -138,9 +138,11 @@ void clippause() {
 			exit(EXIT_FAILURE);
 		case 0:
 			setsid();
-			execl("/usr/bin/clipctl", "clipctl", "disable", NULL);
+			system("clipctl disable");
+			execl("/bin/dunstify", "dunstify", "       Clipboard", "clipmenu is now disabled.", "--icon=com.github.davidmhewitt.clipped", NULL);
 			sleep(60);
-			execl("/usr/bin/clipctl", "clipctl", "enable", NULL);
+			system("clipctl enable");
+			execl("/bin/dunstify", "dunstify", "       Clipboard", "clipmenu is now enabled.", "--icon=com.github.davidmhewitt.clipped", NULL);
 			exit(EXIT_SUCCESS);
 		default:
 			break;
@@ -200,7 +202,7 @@ void deleteclipall() {
 void executebutton() {
 	char *env = getenv("BLOCK_BUTTON");
 	char powermenu[] = " Shutdown\t0\n Reboot\t1\n\n󰗽 Logout\t2\n Lock\t3\n\n Restart DwmBlocks\t4\n󰘚 Optimus Manager\t5\n󰅌 Clipmenu\t6";
-	char yesnoprompt[] = "Yes\t1\nNo\t0\n";
+	char yesnoprompt[] = "Yes\t1\nNo\t0";
 	char optimusmenu[] = "Integrated\t0\nHybrid\t1\nNvidia\t2";
 	char clipmenu[] = "Pause clipmenu for 1 minute\t0\nClear clipboard\t1";
 	int pmsz = sizeof(powermenu);
@@ -233,15 +235,15 @@ void executebutton() {
 			switch (printmenu(optimusmenu, optimussz)) {
 				case 0:
 					if (printmenu(yesnoprompt, ynsz) == 1)
-						execl("/bin/optimus-manager", "--no-confirm", "--switch", "integrated", NULL);
+						execl("/bin/optimus-manager", "oprimus-manager", "--no-confirm", "--switch", "integrated", NULL);
 					break;
 				case 1:
 					if (printmenu(yesnoprompt, ynsz) == 1)
-						execl("/bin/optimus-manager", "--no-confirm", "--switch", "hybrid", NULL);
+						execl("/bin/optimus-manager", "oprimus-manager", "--no-confirm", "--switch", "hybrid", NULL);
 					break;
 				case 2:
 					if (printmenu(yesnoprompt, ynsz) == 1)
-						execl("/bin/optimus-manager", "--no-confirm", "--switch", "nvidia", NULL);
+						execl("/bin/optimus-manager", "oprimus-manager", "--no-confirm", "--switch", "nvidia", NULL);
 					break;
 				default:
 					break;

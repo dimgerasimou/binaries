@@ -23,4 +23,5 @@ setxkbmap -layout us,gr -option grp:win_space_toggle
 
 /usr/bin/dunst &
 
-/usr/bin/systemctl --user import-environment DISPLAY
+(sleep 0.2 && (/usr/bin/systemctl --user import-environment DISPLAY)) &
+(sleep 0.3 && (/usr/bin/clipmenud &)) &
