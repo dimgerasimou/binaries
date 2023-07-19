@@ -265,7 +265,7 @@ void executebutton() {
 				default:
 					break;
 			}
-
+			break;
 		case 6:
 			switch (printmenu(clipmenu, clipsz)) {
 				case 0:
