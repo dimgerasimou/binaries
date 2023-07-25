@@ -2,7 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "colorscheme.h"
+#include "colorscheme.h"	
+#include "common.h"
+
+const char *termpath   = "/usr/local/bin/st";
+const char *termargs[] = {"st", "-e", "bluetuith", NULL};
 
 struct device {
 	char mac[18];
@@ -113,41 +117,6 @@ int audiodevice() {
 	return isaudio;
 }
 
-void execst() {
-	char *term = "st";
-	char *termpath = "/usr/local/bin/st";
-
-	switch (fork()) {
-		case -1:
-			perror("Failed in forking");
-			exit(EXIT_FAILURE);
-		case 0:
-			setsid();
-			execl(termpath, term, "-e", "bluetuith", NULL);
-			exit(EXIT_SUCCESS);
-		default:
-			break;
-	}
-}
-
-void execmenu() {
-	char path[256];
-	char *env;
-	env = getenv("HOME");
-	strcpy(path, env);
-	strcat(path, "/.local/bin/dwmblocks/bluetooth-menu");
-	switch (fork()) {
-		case -1:
-			perror("Failed in forking");
-			exit(EXIT_FAILURE);
-		case 0:
-			execl(path, "bluetooth-menu", NULL);
-			exit(EXIT_SUCCESS);
-		default:
-			break;
-	}
-}
-
 void execblock() {
 	char *button;
 
@@ -156,10 +125,16 @@ void execblock() {
 
 	switch (button[0] - '0') {
 		case 1:
-			execmenu();
+			char path[256];
+			char *env = getenv("HOME");
+			const char *args[] = {"bluetooth-menu", NULL};
+
+			strcpy(path, env);
+			strcat(path, "/.local/bin/dwmblocks/bluetooth-menu");
+			forkexecv(path, (char**) args);
 			break;
 		case 2:
-			execst();
+			forkexecv((char*) termpath, (char**) termargs);
 			break;
 		default:
 			break;

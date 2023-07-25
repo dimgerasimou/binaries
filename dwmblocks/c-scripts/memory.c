@@ -4,6 +4,10 @@
 #include <unistd.h>
 
 #include "colorscheme.h"
+#include "common.h"
+
+const char *htoppath = "/usr/local/bin/st";
+const char *htopargs[] = {"st", "-e", "sh", "-c", "htop", NULL};
 
 long calculateused() {
 	FILE *fp;
@@ -48,18 +52,8 @@ long calculateused() {
 
 void executebutton() {
 	char *env = getenv("BLOCK_BUTTON");
-	if (env != NULL && env[0] == '2') {
-		switch (fork()) {
-			case -1:perror("Failed to fork application");
-				exit(EXIT_FAILURE);
-
-			case 0:	setsid();
-				unsetenv("BLOCK_BUTTON");
-				execl("/usr/local/bin/st", "st", "-e", "sh", "-c", "htop", NULL);
-
-			default:
-		}
-	}
+	if (env != NULL && env[0] == '2') 
+		forkexecv((char*) htoppath, (char**)htopargs);
 }
 
 int main(void) {

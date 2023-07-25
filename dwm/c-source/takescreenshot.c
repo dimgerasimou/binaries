@@ -7,15 +7,26 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <libnotify/notify.h>
 
 static char *screenshotdir[] = {"$HOME", "/Pictures", "/Screenshots", NULL};
-static char *logpath[] = {"$HOME", "/logs", "/dwm"};
+static char *logpath[] = {"$HOME", "/logs"};
 static char *scrotcmd[] = {"scrot", NULL};
-static char *dunstifycmd[] = {"dunstify", "     Scrot", "Screenshot taken", "--icon=display", NULL};
 
+void notify_screenshot();
 void writelog(char *log);
 void makedir(char **fullpath, char *path);
 int execvfork(char *path, char *argv[]);
+
+void notify_screenshot() {
+	notify_init("dwm");
+	NotifyNotification *notification = notify_notification_new("     Scrot", "Screenshot taken", "display");
+	notify_notification_set_urgency(notification, NOTIFY_URGENCY_LOW);
+	
+	if (!notify_notification_show(notification, 0))
+		writelog("Warning:Failed to notify the screenshot.");
+	notify_uninit();
+}
 
 void writelog(char *log) {
 	FILE *fp;
@@ -27,7 +38,7 @@ void writelog(char *log) {
 	sprintf(isotime, "%d-%02d-%02d %02d:%02d:%2d", lt->tm_year + 1900, lt->tm_mon + 1, lt->tm_mday, lt->tm_hour, lt->tm_min, lt->tm_sec);
 
 	makedir(logpath, path);
-	strcat(path, "/takescreenshot.log");
+	strcat(path, "/dwm.log");
 	fp = fopen(path, "a");
 	fprintf(fp, "dwm:takescreenshot:%s:%s\n", isotime, log);
 	fclose(fp);
@@ -137,12 +148,6 @@ int main(void) {
 		writelog(log);
 		exit(EXIT_FAILURE);
 	}
-	if (execvfork("/usr/bin/dunstify", dunstifycmd) == -1) {
-		char log[1024];
-
-		sprintf(log, "Critical Error: Failed in executing dunstify:%s", strerror(errno));
-		writelog(log);
-		exit(EXIT_FAILURE);
-	}
+	notify_screenshot();
 	return EXIT_SUCCESS;
 }

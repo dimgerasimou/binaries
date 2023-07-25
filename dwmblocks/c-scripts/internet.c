@@ -1,3 +1,4 @@
+#include <libnotify/notification.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -5,7 +6,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <dirent.h>
+
 #include "colorscheme.h"
+#include "common.h"
 
 struct devprop {
 	char name[8];
@@ -18,10 +21,11 @@ struct devprop {
 	char ip6address[32];
 };
 
-
-char *iconarray[] = {"--icon=x", "--icon=tdenetworkmanager", "--icon=wifi-radar", "--icon=tdenetworkmanager"};
-char *execnmtui[] = {"st", "-e", "nmtui", NULL};
-char dmenuscriptpath[] = "/.local/bin/dmenu/dmenu-wifiprompt";
+const char *iconarray[] = {"x", "tdenetworkmanager", "wifi-radar", "tdenetworkmanager"};
+const char *nmtuipath = "/usr/local/bin/st";
+const char *nmtuiargs[] = {"st", "-e", "nmtui", NULL};
+const char dmenuscriptpath[] = "/.local/bin/dmenu/dmenu-wifiprompt";
+const char *dmenuargs[] = {"dmenu-wifiprompt", NULL};
 
 void getnames(char *edev, char *wdev) {
 	DIR *dp;
@@ -40,23 +44,6 @@ void getnames(char *edev, char *wdev) {
         }
 	(void) closedir (dp);
 }
-/* 
-void getpaths(char *epath, char *wpath) {
-	char temp[128];
-	char edev[8];
-	char wdev[8];
-
-	getnames(edev, wdev);
-	strcpy(temp, "/sys/class/net/");
-	strcat(temp, edev);
-	strcat(temp, "/operstate");
-	strcpy(epath, temp);
-	
-	strcpy(temp, "/sys/class/net/");
-	strcat(temp, wdev);
-	strcat(temp, "/operstate");
-	strcpy(wpath, temp);
-} */
 
 int geticon(char *icon) {
 	FILE *ep;
@@ -153,85 +140,40 @@ void getdeviceattributes(char *name, struct devprop *deviceprop) {
 }
 
 void netproperties(int state) {
-	char headermessage[64] = "Network Manager";
-
+	struct devprop deviceprop;
 	char edev[8];
 	char wdev[8];
-	struct devprop deviceprop;
 	char output[512];
 	char tempoutput[256];
-	char header[128] = "";
-	int maxw = 39;
 
 	getnames(edev, wdev);
 	switch (state) {
 		case 0:
 			strcpy(output, "Network Disconnected");
-			maxw=20;
 			break;
-
 		case 1:
 			getdeviceattributes(edev, &deviceprop);
 			sprintf(output, "%s\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
 			        deviceprop.type, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
 			break;
-
 		case 2:
 			getdeviceattributes(wdev, &deviceprop);
-			puts(wdev);
 			sprintf(output, "%s\nSSID: %s - %s%%\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
 			        deviceprop.type, deviceprop.connection, deviceprop.state, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
-			if (strlen(deviceprop.connection + 6) > maxw)
-				maxw = strlen(deviceprop.connection + 6);
 			break;
-
 		case 3:
 			getdeviceattributes(edev, &deviceprop);
 			sprintf(output, "%s\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
 			        deviceprop.type, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
-			
 			getdeviceattributes(wdev, &deviceprop);
 			sprintf(tempoutput, "\n%s\nSSID: %s - %s%%\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
 			        deviceprop.type, deviceprop.connection, deviceprop.state, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
-			if (strlen(deviceprop.connection + 6) > maxw)
-				maxw = strlen(deviceprop.connection + 6);
 			strcat(output,tempoutput);
 			break;
 		default:
 			break;
 	}
-
-	for (int i=0; i < (maxw - strlen(headermessage)) / 2; i++)
-		strcat(header, " ");
-	strcat(header, headermessage);	
-
-	execl("/bin/dunstify", "dunstify", header, output, iconarray[state], NULL);
-}
-void notifyproperties(int state) {
-	switch(fork()) {
-		case -1:
-			perror("Failed in forking");
-			exit(EXIT_FAILURE);
-		case 0:	
-			netproperties(state);
-			exit(EXIT_SUCCESS);
-		default:
-			break;
-	}
-}
-
-void execst() {
-	switch(fork()) {
-		case -1:
-			perror("Failed in forking");
-			exit(EXIT_FAILURE);
-		case 0:	
-			setsid();
-			execv("/usr/local/bin/st", execnmtui);
-			exit(EXIT_SUCCESS);
-		default:
-			break;
-	}	
+	notify("Netowrk Manager", output, (char *) iconarray[state], NOTIFY_URGENCY_LOW, 0);
 }
 
 void execdmenu() {
@@ -241,17 +183,10 @@ void execdmenu() {
 			perror("Failed in forking");
 			exit(EXIT_FAILURE);
 		case 0:
-			switch(fork()) {
-				case -1:perror("Failed in forking");	
-					exit(EXIT_FAILURE);
-				case 0:	execl("/bin/dunstify", "dunstify", "       Network Manager", "Probing wifi access points...", NULL);
-					exit(EXIT_SUCCESS);
-				default:
-					break;
-			}
+			notify("Network Manager", "Probing wifi access points...", "wifi-radar", NOTIFY_URGENCY_LOW, 0);
 			env = getenv("HOME");
 			strcat(env, dmenuscriptpath);
-			execl(env, "dmenu-wifiprompt", NULL);
+			forkexecv(env, (char**) dmenuargs);
 			exit(EXIT_SUCCESS);
 		default:
 			break;
@@ -265,15 +200,16 @@ void checkexec(int state) {
 		return;
 
 	switch (env[0] - '0') {
-		case 1:	notifyproperties(state);
+		case 1:	netproperties(state);
 			break;
 
-		case 2: execst();
+		case 2: forkexecv((char*) nmtuipath, (char**) nmtuiargs);
 			break;
 
 		case 3: execdmenu();
 			break;
-		default:break;
+		default:
+			break;
 	}
 }
 

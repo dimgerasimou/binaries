@@ -1,10 +1,10 @@
+#include <libnotify/notification.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include "colorscheme.h"
-
-char *execpmixer[] = {"st", "-e", "sh", "-c", "pulsemixer", NULL};
+#include "common.h"
 
 int getaudioprop(int *muted) {
 	FILE *ep;
@@ -29,59 +29,9 @@ int getaudioprop(int *muted) {
 	return num;
 }
 
-void execst() {
-        switch(fork()) {
-                case -1:perror("Failed in forking");
-                        exit(EXIT_FAILURE);
-                case 0: setsid();
-                        execv("/usr/local/bin/st", execpmixer);
-                        exit(EXIT_SUCCESS);
-                default:
-        }
-}
-
-void execeasyeffects() {
-        switch(fork()) {
-                case -1:perror("Failed in forking");
-                        exit(EXIT_FAILURE);
-                case 0: setsid();
-                        execl("/bin/easyeffects", "easyeffects", NULL);
-                        exit(EXIT_SUCCESS);
-                default:
-        }
-}
-
-void getheader(char *str, char *body, char *output) {
-	int lcount = 0;
-	int mcount = 0;
-	
-	strcpy(output, "");
-	for (int i = 0; i < strlen(body); i++) {
-		if (body[i] == '\n') {
-			if (lcount > mcount)
-				mcount = lcount;
-			lcount = 0;
-		}
-		lcount++;
-	}
-	if (lcount > mcount)
-		mcount = lcount;
-	mcount-=strlen(str);
-	mcount/=2;
-
-	for (int i = 0; i < mcount; i++)
-		strcat(output, " ");
-	strcat(output, str);
-
-	//for (int i = 0; i < mcount; i++)
-	//	strcat(output, " ");
-}
-
-
 void notifyproperties(int volume, int muted) {
 	FILE *ep;
 	char buffer[64];
-	char header[128];
 	int micvol;
 	int micmuted;
 
@@ -102,32 +52,29 @@ void notifyproperties(int volume, int muted) {
 	pclose(ep);
 	
 	sprintf(buffer, " Volume: %3d%%, Muted?: %d\n Volume: %3d%%, Muted?: %d\n", volume, muted, micvol, micmuted);
-	getheader("Wireplumber", buffer, header);
-	switch(fork()) {
-                case -1:perror("Failed in forking");
-                        exit(EXIT_FAILURE);
-		case 0: execl("/bin/dunstify", "dunstify", header, buffer, "--icon=audio-headphones", NULL);
-                        exit(EXIT_SUCCESS);
-                default:
-        }
+	notify("Wireplumber", buffer, "audio-headphones", NOTIFY_URGENCY_LOW, 0);
 }
 
 void executebutton(int volume, int muted) {
         char *env;
+	const char *pmixerargs[] = {"st", "-e", "sh", "-c", "pulsemixer", NULL};
+	const char *easyeffectsargs[] = {"easyeffects", NULL};
 
         if ((env = getenv("BLOCK_BUTTON"))== NULL)
                 return;
 
         switch (env[0] - '0') {
-                case 1: notifyproperties(volume, muted); 
+                case 1: 
+			notifyproperties(volume, muted); 
                         break;
-
-                case 2: execst();
+                case 2: 
+			forkexecv("/usr/local/bin/st", (char**) pmixerargs);
                         break;
-
-                case 3: execeasyeffects();
+                case 3: 
+			forkexecv("/usr/bin/easyeffects", (char**) easyeffectsargs);
                         break;
-                default:break;
+                default:
+			break;
         }
 }
 

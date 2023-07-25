@@ -1,3 +1,4 @@
+#include <libnotify/notification.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +10,7 @@
 #include <sys/wait.h>
 
 #include "colorscheme.h"
+#include "common.h"
 
 int printmenu(char *menu, int menusize) {
 	int option=-1;
@@ -50,104 +52,6 @@ int printmenu(char *menu, int menusize) {
 	return option;
 }
 
-void freestruct(struct dirent** input, int n) {
-	while (n--)
-		free(input[n]);
-	free(input);
-}
-
-int isnumber(char* string) {
-	for (int i = 0; i < strlen(string); i++)
-		if (string[i] > '9' || string[i] < '0')
-			return 0;
-	return 1;
-}
-
-void killproccess(char *name) {
-	FILE *fp;
-	struct dirent **pidlist;
-	int funcret = scandir("/proc", &pidlist, NULL, alphasort);
-	char buffer[128];
-	char filename[128];
-	int pid = -1;
-
-	if (funcret == -1) {
-		perror("Failed to scan /proc directoy");
-        	freestruct(pidlist, funcret);
-		exit(EXIT_FAILURE);
-	}
-
-	for (int i = 0; i < funcret; i++) {
-		if (isnumber(pidlist[i]->d_name)) {
-			strcpy(filename, "/proc/");
-			strcat(filename, pidlist[i]->d_name);
-			strcat(filename, "/cmdline");
-			fp = fopen(filename, "r");
-			if (fp == NULL) {
-				fclose(fp);
-				continue;
-			}
-			fgets(buffer, sizeof(buffer), fp);
-			fclose(fp);
-			if (strcmp(buffer, name) == 0) {
-				pid = strtol(pidlist[i]->d_name, NULL, 10);
-				break;
-			}
-		}
-	}
-	if (pid != -1)
-		kill(pid, SIGTERM);
-	freestruct(pidlist, funcret);
-}
-
-void restartdwmblocks() {
-	killproccess("dwmblocks");
-	switch (fork()) {
-		case -1:
-			perror("Failed in forking");
-			exit(EXIT_FAILURE);
-		case 0:
-			setsid();
-			unsetenv("BLOCK_BUTTON");
-			execl("/usr/local/bin/dwmblocks", "dwmblocks", NULL);
-			exit(EXIT_SUCCESS);
-		default:
-			break;
-	}
-}
-
-void lock() {
-	switch (fork()) {
-		case -1:
-			perror("Failed in forking");
-			exit(EXIT_FAILURE);
-		case 0:
-			setsid();
-			sleep(1);
-			execl("/usr/local/bin/slock", "slock", NULL);
-			exit(EXIT_SUCCESS);
-		default:
-			break;
-	}
-}
-
-void notify(char *header, char *body, char *iconname) {
-	char icon[512];
-	strcpy(icon, "--icon=");
-	strcat(icon, iconname);
-	switch (fork()) {
-		case -1:
-			perror("Failed in forking");
-			exit(EXIT_FAILURE);
-		case 0:
-			execl("/bin/dunstify", "dunstify", header, body, icon, NULL);
-			exit(EXIT_SUCCESS);
-		default:
-			break;
-	}
-
-}
-
 void clippause() {
 	switch (fork()) {
 		case -1:
@@ -156,10 +60,10 @@ void clippause() {
 		case 0:
 			setsid();
 			system("clipctl disable");
-			notify("       Clipboard", "clipmenu is now disabled.", "com.github.davidmhewitt.clipped");
+			notify("Clipboard", "clipmenu is now disabled.", "com.github.davidmhewitt.clipped", NOTIFY_URGENCY_NORMAL, 0);
 			sleep(60);
 			system("clipctl enable");
-			notify("       Clipboard", "clipmenu is now enabled.", "com.github.davidmhewitt.clipped");
+			notify("Clipboard", "clipmenu is now enabled.", "com.github.davidmhewitt.clipped", NOTIFY_URGENCY_NORMAL, 0);
 			exit(EXIT_SUCCESS);
 		default:
 			break;
@@ -240,13 +144,18 @@ void executebutton() {
 				execl("/bin/shutdown", "shutdown", "now", "-r", NULL);
 			break;
 		case 2:
-			killproccess("/usr/local/bin/dwm");
+			killstr("/usr/local/bin/dwm", SIGTERM);
 			break;
 		case 3:
-			lock();
+			const char *slockargs[] = {"slock", NULL};
+			sleep(1);
+			forkexecv("/usr/local/bin/slock", (char**) slockargs);
 			break;
 		case 4:
-			restartdwmblocks();
+			const char *dwmblocksargs[] = {"dwmblocks", NULL};
+			killstr("dwmblocks", SIGTERM);
+			unsetenv("BLOCK_BUTTON");
+			forkexecv("/usr/local/bin/dwmblocks", (char**) dwmblocksargs);
 			break;
 		case 5:
 			switch (printmenu(optimusmenu, optimussz)) {

@@ -1,3 +1,4 @@
+#include <libnotify/notification.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,6 +7,7 @@
 #include <sys/utsname.h>
 
 #include "colorscheme.h"
+#include "common.h"
 
 char *updatecommand[] = {"st", "-e", "sh", "-c", "paru", NULL};
 
@@ -26,59 +28,16 @@ void updatecounter(int *aur, int *pacman) {
 	*pacman = checkupdates("/bin/checkupdates");
 }
 
-void getheader(char *str, char *body, char *output) {
-	int lcount = 0;
-	int mcount = 0;
-	
-	strcpy(output, "");
-	for (int i = 0; i < strlen(body); i++) {
-		if (body[i] == '\n') {
-			if (lcount > mcount)
-				mcount = lcount;
-			lcount = 0;
-		}
-		lcount++;
-	}
-	if (lcount > mcount)
-		mcount = lcount;
-	mcount-=strlen(str);
-	mcount-=2;
-	mcount/=2;
-
-	for (int i = 0; i < mcount; i++)
-		strcat(output, " ");
-	strcat(output, str);
-}
-
-void sendmessage(int aur, int pacman) {
-	char message[64];
-	char header[128];
-	
-	sprintf(message, "󰏖 Pacman Updates: %d\n AUR Updates: %d", pacman, aur);
-	getheader("Packages", message, header);
-
-	switch (fork()) {
-		case -1:
-			perror("Failed to fork");
-			exit(EXIT_FAILURE);
-
-		case 0:	execl("/bin/dunstify", "dunstify", header, message, "--icon=tux", NULL);
-			exit(EXIT_SUCCESS);
-		
-		default:
-	}
-}
-
 void executebutton(int aur, int pacman) {
 	char *env = getenv("BLOCK_BUTTON");
 
 	if (env == NULL)
 		return;
-	switch (env[0] - '0') {
-		case 1:	sendmessage(aur, pacman);
-			break;
-		
-		default:
+	if(env[0] == '1') {
+		char body[64];
+
+		sprintf(body, "󰏖 Pacman Updates: %d\n AUR Updates: %d", pacman, aur);
+		notify("Packages", body, "tux", NOTIFY_URGENCY_LOW, 0);
 	}
 }
 

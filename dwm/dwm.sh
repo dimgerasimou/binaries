@@ -1,6 +1,7 @@
 #!/bin/bash
 
-compiledscripts="audiocontrol mediacontrol takescreenshot"
+compiledscripts="audiocontrol mediacontrol"
+mancompiledscripts="takescreenshot"
 shellscripts="autostart.sh layoutmenu swaplanguage"
 path="$HOME/.local/bin/dwm"
 
@@ -14,6 +15,10 @@ if [ "$1" == "uninstall" ]; then
     done
 
     for script in $compiledscripts; do
+        rm -f $path/$script
+    done
+
+    for script in $mancompiledscripts; do
         rm -f $path/$script
     done
 
@@ -36,4 +41,8 @@ else
         gcc -Wall -Os c-source/$script.c -o c-source/$script
         mv c-source/$script $path/$script
     done
+
+    gcc c-source/takescreenshot.c -o c-source/takescreenshot -Wall -Os `pkg-config --cflags --libs libnotify`
+	mv c-source/takescreenshot $path/takescreenshot
+
 fi
