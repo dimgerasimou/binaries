@@ -1,5 +1,5 @@
 /*
- * This is an executable than can raise lower (+-5%) or mute the default source or default sink
+ * This is an executable than can raise lower (+-5%), set the volume on a given parameter or mute the default source or default sink
  * of wireplumber and then signal dwmblocks to update the corresponding block.
  */
 
@@ -8,52 +8,103 @@
 #include <stdio.h>
 #include <string.h>
 
-#define SIGNALNO 10    /* signal number of dwmblocks volume block */
 #define MAXVOL "1.2"   /* max volume to raise the sink 1.2 = 120% */
 
-int main(int argc, char *argv[]) {
-	// Return if 2 arguments are not given.
-	if (argc != 3) {
-		perror("dwm-audiocontrol: Wrong argument format: Wrong number of arguments");
-		exit(EXIT_FAILURE);
-	}
-		
-	char output[64];
-	strcpy(output, "/usr/bin/wpctl ");
+void fork_execv(char *path, char *args[]) {
+	pid_t pID;
 
+	pID = fork();
+	if (pID < 0) {
+		perror("Fork failed");
+		exit(1);
+	} else if (pID == 0) {
+		setsid();
+		execv(path, args);
+		perror("Fork execv failed");
+		exit(1);
+	}
+}
 
-	// Check for the validity of the arguments.
-	if (strcmp(argv[2], "increase") == 0) {
-		strcat(output, "set-volume ");
-	} else if (strcmp(argv[2],"decrease") == 0) {
-		strcat(output, "set-volume ");
-	} else if (strcmp(argv[2], "toggle-mute") == 0) {
-		strcat(output, "set-mute ");
-	} else {
-		perror("dwm-audiocontrol: Wrong argument format: Wrong operation type");
-		exit(EXIT_FAILURE);
+void freenpointers(char **pointer, int index) {
+	for (int i = index; i < 7; i++) {
+		free(pointer[i]);
+		pointer[i] = NULL;
+	}
+}
+
+void freearray(char **pointer) {
+	if(pointer != NULL) {
+		for (int i = 0; i < 7; i++)
+			if (pointer[i] != NULL)
+				free(pointer[i]);
+		free(pointer);
+	}
+}
+
+int parse_arguments(int argc, char *argv[], char **wpctlargs) {
+	if (argc < 3) {
+		fprintf(stderr, "Argument count is wrong.\n");
+		exit(1);
 	}
 
-	if (strcmp(argv[1], "source") == 0) {
-		strcat(output, "@DEFAULT_AUDIO_SOURCE@ ");
-	} else if (strcmp(argv[1], "sink") == 0) {
-		strcat(output, "@DEFAULT_AUDIO_SINK@ ");
-	} else {
-		perror("dwm-audiocontrol: Wrong argument format: Wrong device type");
-		exit(EXIT_FAILURE);
-	}
- 
-	if (strcmp(argv[2], "increase") == 0)	
-		strcat(output, "5%+ -l "MAXVOL);
-	else if (strcmp(argv[2], "decrease") == 0)
-		strcat(output, "5%-");
+	if (strcmp(argv[1], "source") == 0)
+		strcpy(wpctlargs[2], "@DEFAULT_AUDIO_SOURCE@");
+	else if (strcmp(argv[1], "sink") == 0)
+		strcpy(wpctlargs[2], "@DEFAULT_AUDIO_SINK@");
 	else
-		strcat(output, "toggle");
+		return 0;
 
-	FILE* ep;
-	ep = popen(output, "w");
-	pclose(ep);
-	ep = popen("/usr/local/bin/dwmblocksctl -s volume", "w");
-	pclose(ep);
+	if (strcmp(argv[2], "increase") == 0 && argc == 3){
+		strcpy(wpctlargs[1], "set-volume");
+		strcpy(wpctlargs[3], "5%+");
+		strcpy(wpctlargs[4], "-l");
+		strcpy(wpctlargs[5], MAXVOL);
+		freenpointers(wpctlargs, 6);
+	} else if (strcmp(argv[2], "decrease") == 0 && argc == 3) {
+		strcpy(wpctlargs[1], "set-volume");
+		strcpy(wpctlargs[3], "5%-");
+		freenpointers(wpctlargs, 4);
+	} else if (strcmp(argv[2], "mute") == 0 && argc == 3) {
+		strcpy(wpctlargs[1], "set-mute");
+		strcpy(wpctlargs[3], "toggle");
+		freenpointers(wpctlargs, 4);
+	} else if (strcmp(argv[2], "set") == 0 && argc == 4) {
+		strcpy(wpctlargs[1], "set-volume");
+		strcpy(wpctlargs[3], argv[3]);
+		freenpointers(wpctlargs, 4);
+	} else {
+		return 0;
+	}
+	strcpy(wpctlargs[0], "wpctl");
+	return 1;
+}
+
+int main(int argc, char *argv[]) {
+	char **wpctlargs;
+	const char *dctlargs[] = {"dwmblocksctl", "-s", "volume", NULL};
+
+	if ((wpctlargs = (char**) malloc(7 * sizeof(char*))) == NULL) {
+		perror("malloc() failed");
+		exit(1);
+	}
+
+	for (int i = 0; i < 7; i++)
+		if ((wpctlargs[i] = (char*) malloc(32 * sizeof(char))) == NULL) {
+			perror("malloc() failed");
+			freearray(wpctlargs);	
+			exit(1);
+		}
+	
+
+	if (!parse_arguments(argc, argv, wpctlargs)) {
+		fprintf(stderr, "Wrong arguments\n");
+		freearray(wpctlargs);	
+		exit(1);
+	}
+	
+	fork_execv("/usr/bin/wpctl", wpctlargs);
+	fork_execv("/usr/local/bin/dwmblocksctl", (char **) dctlargs);
+
+	freearray(wpctlargs);	
 	return 0;		
 }
