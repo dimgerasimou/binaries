@@ -1,22 +1,27 @@
 #!/bin/sh
 
-if (($# != 0 )) && ( [[ "$1" != "uninstall" ]] || (($# > 1)) ); then
-	echo ""
-        echo "Run with no arguments to install all scripts."
-        echo "Options:"
-        echo "        uninstall - Uninsltalls all scripts and removes the empty associated directories."
-	echo ""
-        exit
-fi
+installations="dmenu dwm dwmblocks"
 
-cd dmenu
-./dmenu.sh "$1"
-cd ..
+case $1 in
+	-r|--uninstall)
+		;;
 
-cd dwm
-./dwm.sh "$1"
-cd ..
+	-h|--help)
+		echo "Usage: install.sh [-r | --uninstall]"
+		echo "default: install"
+		exit 0;;
+	
+	-*|--*)
+		echo "Unknown option $1"
+		exit 1;;
+	*)
+		;;
+esac
 
-cd dwmblocks
-./dwmblocks.sh "$1"
-cd ..
+
+for install in $installations; do
+	cd $install
+	./install.sh "$1"
+	cd ..
+done
+echo "Done!"
