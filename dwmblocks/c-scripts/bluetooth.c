@@ -145,12 +145,12 @@ int main(void) {
 	execblock();
 
 	if (!getopstate()) {
-		printf(CLR_4 " 󰂲" NRM "\n");
+		printf(CLR_4 BG_1 "  󰂲" NRM "\n");
 	} else {
 		if (!audiodevice())
-			printf(CLR_4 " 󰂯" NRM "\n");
+			printf(CLR_4 BG_1"  󰂯" NRM "\n");
 		else
-			printf(CLR_4 " 󰥰" NRM "\n");
+			printf(CLR_4 BG_1"  󰥰" NRM "\n");
 	}
 	return EXIT_SUCCESS;
 }

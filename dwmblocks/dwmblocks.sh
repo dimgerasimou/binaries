@@ -37,7 +37,7 @@ echo "Copying dwmblocks scripts."
 
 cd c-scripts
 
-gcc -o loadresources loadresources.c
+gcc -o loadresources loadresources.c -lX11 -Wall
 
 ./loadresources
 

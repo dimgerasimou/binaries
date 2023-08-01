@@ -18,6 +18,8 @@
 #define CLR_13 "^c#F5C2E7^"
 #define CLR_14 "^c#94E2D5^"
 #define CLR_15 "^c#BAC2DE^"
+#define BG_0 "^b#1E1E2E^"
+#define BG_1 "^b#313244^"
 #define NRM "^d^"
 
 #endif   /* COLORSCHEME */

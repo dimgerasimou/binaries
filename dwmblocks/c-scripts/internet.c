@@ -71,11 +71,11 @@ int geticon(char *icon) {
 
 	}
 	if (!state) 
-		strcpy(icon, CLR_9"    "NRM);
+		strcpy(icon, CLR_9" "NRM);
 	else if (state == 2)
-		strcpy(icon, CLR_6"  󰤨  "NRM);
+		strcpy(icon, CLR_6"󰤨 "NRM);
 	else if (state == 1 || state == 3)
-		strcpy(icon, CLR_6"  󰈁  "NRM);
+		strcpy(icon, CLR_6"󰈁 "NRM);
 	else
 	 	strcpy(icon, "NULL");
 	return state;
@@ -217,6 +217,6 @@ int main(void) {
 	char icon[32];
 	int state = geticon(icon);
 	checkexec(state);
-	puts(icon);
+	printf("  "BG_1" %s\n", icon);
 	return 0;
 }
