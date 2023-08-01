@@ -21,7 +21,7 @@ install() {
 	mkdir -p $path
 
 	for script in $scripts; do
-	cp shell-scripts/$script $path/
+	cp sh-src/$script $path/
 	done
 }
 

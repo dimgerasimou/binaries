@@ -15,6 +15,7 @@ These are the binaries that i use with my own dwm - suckless installation.
 ### dwm
 
  - dwmblocks
+ - libnotify
  - wireplumber
  - xmenu (git)
  - scrot
@@ -22,11 +23,10 @@ These are the binaries that i use with my own dwm - suckless installation.
 In autostart:
 
  - picom
+ - dwmblocksctl (git)
  - easyeffects
  - mate-polkit
- - emacs
  - xautolock
- - dunst
  - clipmenu (git)
 
 ### dwmblocks
@@ -36,7 +36,6 @@ Most of them are for clickable functions.
  - dmenu (git)
  - dwm with nerd icons support and status2d patch (git)
  - optimus-manager or envycontrol (optional)
- - dunst
  - xmenu (git)
  - st (git)
  - firefox

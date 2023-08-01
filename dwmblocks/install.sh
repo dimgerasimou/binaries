@@ -21,7 +21,7 @@ uninstall() {
 install() {
 	echo "Copying dwmblocks scripts."
 
-	cd c-scripts
+	cd c-src
 	gcc -o loadresources loadresources.c -lX11 -Wall
 	./loadresources
 	rm -f loadresources

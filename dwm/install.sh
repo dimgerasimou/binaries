@@ -30,15 +30,15 @@ install() {
 	echo "Copying dwm scripts."
 
 	sudo mkdir -p /usr/share/xsessions
-	sudo cp desktop-files/dwm.desktop /usr/share/xsessions/dwm.desktop
+	sudo cp misc-src/dwm.desktop /usr/share/xsessions/dwm.desktop
 
         mkdir -p $path
 
 	for script in $shscripts; do
-		cp shell-scripts/$script $path/$script
+		cp sh-src/$script $path/$script
 	done
 
-	cd c-source
+	cd c-src
 	for script in $cscripts; do
 		gcc -o $script $script.c $CFLAGS $LFLAGS
 		mv $script $path/$script
