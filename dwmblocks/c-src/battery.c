@@ -116,7 +116,7 @@ int main(void) {
 	executebutton(capacity, status);
 
 	if(strcmp(status, "Charging") == 0) {
-		printf(CLR_3" "NRM"\n");
+		printf(CLR_3 BG_1" "NRM"\n");
 		return EXIT_SUCCESS;
 	}
 	
