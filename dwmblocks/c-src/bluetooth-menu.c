@@ -79,6 +79,8 @@ void togglebt() {
 		strcat(cmd,"on");
 	ep = popen(cmd, "r");
 	pclose(ep);
+	ep = popen("/usr/local/bin/dwmblocksctl -s bluetooth", "r");
+	pclose(ep);
 }
 
 void clearnline(char *string) {

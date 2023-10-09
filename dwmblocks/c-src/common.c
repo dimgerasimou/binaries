@@ -100,7 +100,6 @@ void killstr(char *procname, int signo) {
 			strcat(filename, "/cmdline");
 			fp = fopen(filename, "r");
 			if (fp == NULL) {
-				fclose(fp);
 				continue;
 			}
 			fgets(buffer, sizeof(buffer), fp);
