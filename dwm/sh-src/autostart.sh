@@ -4,13 +4,7 @@
 
 setxkbmap -layout us,gr -option grp:win_space_toggle
 
-if [ "$(optimus-manager --status | grep 'Current GPU mode' | cut -d ":" -f2 | xargs)" == 'nvidia' ]; then
-	xrandr --output HDMI-0 --mode 1920x1080 --rate 75 --right-of eDP-1-1 --primary --output eDP-1-1 --rate 144
-elif [ "$(optimus-manager --status | grep 'Current GPU mode' | cut -d ":" -f2 | xargs)" == 'hybrid' ]; then
-	xrandr --output HDMI-1-0 --mode 1920x1080 --rate 75 --right-of eDP-1 --primary --output eDP-1 --rate 144
-else
-	xrandr auto
-fi
+$HOME/.local/bin/dwm/xrandr
 
 (sleep 0.2 && (nohup easyeffects --gapplication-service &)) &
 (sleep 1 && ($HOME/.local/bin/dwm/audiocontrol sink set 0.8) && ($HOME/.local/bin/dwm/audiocontrol source set 1)) &
