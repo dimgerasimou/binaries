@@ -4,48 +4,11 @@
 
 These are the binaries that i use with my own dwm - suckless installation.
 
-## Dependencies
+## Usage and Dependencies
 
-### dmenu
+Usage and Dependencies are analyzed for each binary in the `README.md` files in their corresponding folders.
 
- - feh
- - imagemagick
- - networkmanager
+## Installation - Uninstallation
 
-### dwm
-
- - dwmblocks
- - libnotify
- - wireplumber
- - xmenu (git)
- - scrot
-
-In autostart:
-
- - picom
- - dwmblocksctl (git)
- - easyeffects
- - mate-polkit
- - xautolock
- - clipmenu (git)
-
-### dwmblocks
-Most of them are for clickable functions.
-
- - libnotify
- - dmenu (git)
- - dwm with nerd icons support and status2d patch (git)
- - optimus-manager or envycontrol (optional)
- - xmenu (git)
- - st (git)
- - firefox
- - networkmanager
- - libx11
- - slock (git)
- - paru (AUR)
- - pulsemixer
- - wireplumber
- - bluez-utils
- - bluetuith (AUR)
- - pacman-contrib
- - easyeffetcs
+Just run `./install.sh` to install all or `./install.sh -r` to uninstall all. For installing scripts for a single application, just run the
+corresponding install script in the application's binaries' folder.
