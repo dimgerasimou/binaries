@@ -3,7 +3,7 @@
 path="$HOME/.local/bin/dwm"
 
 cscripts="audiocontrol mediacontrol takescreenshot xrandr"
-shscripts="autostart.sh layoutmenu swaplanguage"
+shscripts="autostart.sh layoutmenu"
 
 CFLAGS="-Os -Wall"
 LFLAGS="`pkg-config --cflags --libs libnotify`"
