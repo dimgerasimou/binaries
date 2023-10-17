@@ -2,43 +2,333 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include <unistd.h>
+#include <X11/Xlib.h>
+#include <X11/extensions/Xrandr.h>
+
+/* structures */
+
+typedef struct {
+	RRMode       id;
+	unsigned int height;
+	unsigned int width;
+	double       rate;
+} mode;
+
+typedef struct {
+	char         *name;
+	mode         *m;
+	unsigned int xOffset;
+	unsigned int yOffset;
+	Rotation     rotation;
+	bool         primary;
+} monitor;
+
+/* variables */
+
+static Display            *dpy = NULL;
+static Window             root;
+static XRRScreenResources *resources = NULL;
+static monitor            **screen = NULL;
+static unsigned int       screenSize = 0;
 
 const char config_path[] = "/.config/xrandr/displaysetup.conf";
 
-typedef struct {
-	char id[32];
-	char max_mode[32];
-	char config_mode[32];
-	char pos_arg[16];
-	char pos_id[16];
-	double max_rate;
-	double config_rate;
-	bool primary;
-} monitor;
 
-void initialize_monitor(monitor *mon) {
-	mon->id[0] = '\0';
-	mon->max_mode[0] = '\0';
-	mon->config_mode[0] = '\0';
-	mon->pos_arg[0] = '\0';
-	mon->pos_id[0] = '\0';
-	mon->max_rate=-1;
-	mon->config_rate=-1;
-	mon->primary = false;
+/* function definitions */
+
+void appendScreen();
+char* allocateStringMemory(char *str);
+void freeScreen();
+mode* XRRGetMonitorMaxMode(XRROutputInfo *output, XRRScreenResources *resources);
+void printMonitorDetails(monitor *mon);
+void getScreenMaxValues();
+void setScreen();
+void initializeX();
+void freeApplication();
+void getModes();
+char* stripWhitespace(char *string);
+FILE* getConfigStream();
+long getScreenOffset(FILE *fp);
+int getOptions(FILE *fp, long offset);
+int getConfigArgs();
+
+void
+appendScreen()
+{
+	screen = (monitor**) realloc(screen, ++screenSize * sizeof(monitor*));
+	if (screen == NULL) {
+		fprintf(stderr, "malloc() returned null pointer to screen. Line:%d\n", __LINE__);
+		exit(-1);
+	}
+	if ((screen[screenSize-1] = (monitor*) malloc(sizeof(monitor))) == NULL) {
+		fprintf(stderr, "malloc() returned null pointer to screen[%d]. Line:%d\n", screenSize - 1, __LINE__);
+		exit(-1);
+	}
+	screen[screenSize-1]->name = NULL;
+	screen[screenSize-1]->primary = false;
+	screen[screenSize-1]->rotation = RR_Rotate_0;
+	screen[screenSize-1]->xOffset = 0;
+	screen[screenSize-1]->yOffset = 0;
 }
 
-void free_screen(monitor **screen, int screen_size) {
-	if (screen == NULL)
+char*
+allocateStringMemory(char *str)
+{
+	char *ptr;
+
+	ptr = (char*) malloc((strlen(str) + 1) * sizeof(char));
+	
+	if (ptr == NULL) {
+		fprintf(stderr, "malloc() returned null pointer to allocateStringMemory\n");
+		exit(-1);
+	}
+	strcpy(ptr, str);
+	return ptr;
+}
+
+void
+freeScreen()
+{
+	if(screen == NULL)
 		return;
-	for (int i = 0; i < screen_size; i++) {
+	for (int i = 0; i < screenSize; i++) {
+		if (screen[i]->name != NULL)
+			free(screen[i]->name);
+		if (screen[i]->m != NULL)
+			free(screen[i]->m);
 		if (screen[i] != NULL)
 			free(screen[i]);
 	}
 	free(screen);
+	screenSize = 0;
 }
 
-char* strip_whitespace(char *string) {
+mode*
+XRRGetMonitorMaxMode(XRROutputInfo *output, XRRScreenResources *resources)
+{
+	mode *maxMode;
+	XRRModeInfo *m_inf;
+	double rate;
+
+	if ((maxMode = (mode*) malloc(sizeof(mode))) == NULL) {
+		fprintf(stderr, "malloc() returned null pointer to maxMode. Line:%d\n", __LINE__);
+		exit(-1);
+	}
+
+	maxMode->id = 0;
+	maxMode->height = 0;
+	maxMode->width = 0;
+	maxMode->rate = -1.0;
+
+	for (int i = 0; i < output->nmode; i++) {
+		for (int j = 0; j < resources->nmode; j++) {
+			if (output->modes[i] == resources->modes[j].id) {
+				m_inf = &resources->modes[j];
+				if (m_inf->height >= maxMode->height && m_inf->width >= maxMode->width) {
+					rate = (double) m_inf->dotClock / (double) (m_inf->hTotal * m_inf->vTotal);
+					if (rate >= maxMode->rate) {
+						maxMode->rate = rate;
+						maxMode->height = m_inf->height;
+						maxMode->width = m_inf->width;
+						maxMode->id = m_inf->id;
+					}
+				}
+			}
+		}
+	}
+	return maxMode;
+}
+
+void
+printMonitorDetails(monitor *mon)
+{
+	printf("Name: %s width:%u height:%u mode:%lu rate:%.1lf primary:%u rotation:%u x:%u y:%u\n",
+	        mon->name, mon->m->width, mon->m->height, mon->m->id,
+		mon->m->rate, mon->primary, mon->rotation, mon->xOffset, mon->yOffset);
+}
+
+void
+getScreenMaxValues()
+{
+	XRROutputInfo *output; 
+
+	for (int i = 0; i < resources->noutput; i++) {
+		output = XRRGetOutputInfo(dpy, resources, resources->outputs[i]);
+		if (!output->connection) {
+			appendScreen();
+			screen[screenSize-1]->name = allocateStringMemory(output->name);
+			screen[screenSize-1]->m = XRRGetMonitorMaxMode(output, resources);
+		}
+		XRRFreeOutputInfo(output);
+	}
+}
+
+void
+expandSize()
+{
+	int width = 0;
+	int height = 0;
+	int mmWidth;
+	int mmHeight;
+	int nsizes;
+	
+	for (int i = 0; i < screenSize; i++) {
+		if (screen[i]->yOffset + screen[i]->m->height > height)
+			height = screen[i]->yOffset + screen[i]->m->height;
+		if (screen[i]->xOffset + screen[i]->m->width > width)
+			width = screen[i]->xOffset + screen[i]->m->width;
+	}
+
+	XRRScreenSize *s = XRRSizes(dpy, 0, &nsizes);
+	
+	float dpi = (25.4 * s[0].height) / s[0].mheight;
+	
+	mmWidth =  (int) ((25.4 * width) / dpi);
+  	mmHeight = (int) ((25.4 * height) / dpi);
+
+	if (s[0].width > width) {
+		width = s[0].width;
+		mmWidth = s[0].mwidth;
+	}
+		
+	if (s[0].height > height) {
+		height = s[0].height;
+		mmHeight = s[0].mheight;
+	}
+
+	XRRSetScreenSize(dpy, root, width, height, mmWidth, mmHeight);
+}
+
+void
+retractSize()
+{
+	int width = 0;
+	int height = 0;
+	int mmWidth;
+	int mmHeight;
+	int nsizes;
+	
+	for (int i = 0; i < screenSize; i++) {
+		if (screen[i]->yOffset + screen[i]->m->height > height)
+			height = screen[i]->yOffset + screen[i]->m->height;
+		if (screen[i]->xOffset + screen[i]->m->width > width)
+			width = screen[i]->xOffset + screen[i]->m->width;
+	}
+
+	XRRScreenSize *s = XRRSizes(dpy, 0, &nsizes);
+	
+	float dpi = (25.4 * s[0].height) / s[0].mheight;
+	
+	mmWidth =  (int) ((25.4 * width) / dpi);
+  	mmHeight = (int) ((25.4 * height) / dpi);
+
+	XRRSetScreenSize(dpy, root, width, height, mmWidth, mmHeight);
+}
+
+void
+setScreen()
+{
+	
+	for (int i = 0; i < screenSize; i++) {
+		if (screen[i]->rotation == RR_Rotate_90 || screen[i]->rotation == RR_Rotate_270) {
+			unsigned int temp = screen[i]->m->height;
+			screen[i]->m->height = screen[i]->m->width;
+			screen[i]->m->width = temp;
+		}
+	}
+	expandSize();
+	XRROutputInfo *output;
+	XRRCrtcInfo *crtc;
+
+	for (int i = 0; i < resources->noutput; i++) {
+		output = XRRGetOutputInfo(dpy, resources, resources->outputs[i]);
+		for (int j = 0; j < screenSize; j++) {
+			if (!strcmp(screen[j]->name, output->name)) {
+				crtc = XRRGetCrtcInfo(dpy, resources, output->crtc);
+				XRRSetCrtcConfig(dpy, resources, output->crtc,
+				                 crtc->timestamp, screen[j]->xOffset, screen[j]->yOffset,
+						 screen[j]->m->id, screen[j]->rotation, crtc->outputs,
+						 crtc->noutput);
+				XRRFreeCrtcInfo(crtc);
+				if (screen[j]->primary)
+					XRRSetOutputPrimary(dpy, root, resources->outputs[i]);
+			}
+		}
+		XRRFreeOutputInfo(output);
+	}
+	retractSize();
+}
+
+void
+initializeX()
+{
+	dpy = XOpenDisplay(NULL);
+	
+	if (dpy == NULL) {
+		fprintf(stderr, "Failed to start X\n");
+		exit(-1);
+	}
+
+	root = XDefaultRootWindow(dpy);
+	resources = XRRGetScreenResources(dpy, root);
+}
+
+void
+freeApplication()
+{
+	XRRFreeScreenResources(resources);
+	XCloseDisplay(dpy);
+	freeScreen();
+}
+
+void
+getModes()
+{
+	XRROutputInfo *output;
+	XRRModeInfo *minf;
+	mode *m;
+
+	char str1[16], str2[16];
+
+	for (int i = 0; i < screenSize; i++) {
+		m = screen[i]->m;
+
+		for (int j = 0; j < resources->noutput; j++) {
+			output = XRRGetOutputInfo(dpy, resources, resources->outputs[j]);
+			if(strcmp(screen[i]->name, output->name)) {
+				XRRFreeOutputInfo(output);
+				continue;
+			}
+		}
+
+		if (output == NULL)
+			continue;
+
+		for (int j = 0; j < output->nmode; j++) {
+			for (int k = 0; k < resources->nmode; k++) {
+				if (output->modes[j] == resources->modes[k].id) {
+					minf = &resources->modes[j];
+					if (minf->width == m->width && minf->height == m->height) {
+						sprintf(str1, "%.1lf", m->rate);
+						sprintf(str2, "%.1lf", (double) (double) minf->dotClock / (double) (minf->hTotal * minf->vTotal));
+						if (!strcmp(str1, str2)) {
+							m->id = minf->id;
+							goto LOOPEND;
+						}
+					}
+					break;
+				}
+			}
+		}
+LOOPEND:
+		XRRFreeOutputInfo(output);
+		continue;
+	}
+}
+
+char*
+stripWhitespace(char *string)
+{
 	char *ptr = string + strlen(string);
 
 	// Strip all trailing control characters and spaces.
@@ -56,73 +346,9 @@ char* strip_whitespace(char *string) {
 	return ptr;
 }
 
-void get_xrandr_args(monitor ***screen, int *screen_size) {
-	FILE *ep;
-	char *ptr;
-	char buffer[512];
-
-	int moni = 0;
-	int index = 0;
-	double temp;
-
-	if ((ep = popen("xrandr", "r")) == NULL) {
-		fprintf(stderr, "popen() failed with argument \"xrandr\".\n");
-		exit(1);
-	}
-
-	while(fgets(buffer, sizeof(buffer), ep) != NULL) {
-		// If a monitor is connected
-		if ((ptr = strstr(buffer, " connected")) != NULL) {
-
-			// Allocate screen and the monitors in heap and initialize to 0.
-			if ((*screen = (monitor**) realloc(*screen, (*screen_size + 1) * sizeof(monitor*))) == NULL) {
-				fprintf(stderr, "realloc() returned null pointer for screen. Line:%d\n", __LINE__);
-				free_screen(*screen, *screen_size);
-				exit(-1);
-			}
-
-			if (((*screen)[*screen_size] = (monitor*) malloc(sizeof(monitor))) == NULL) {
-				fprintf(stderr, "malloc() returned null pointer for screen[%d]. Line:%d\n", *screen_size, __LINE__);
-				free_screen(*screen, *screen_size);
-				exit(-1);
-			}
-
-			initialize_monitor((*screen)[(*screen_size)++]);
-
-			// Parse the name.
-			strncpy((*screen)[moni]->id, buffer, ptr - buffer);
-			(*screen)[moni]->id[ptr-buffer] = '\0';
-			
-			if (fgets(buffer, sizeof(buffer), ep) == NULL) {
-				fprintf(stderr, "Failed parsing the configuration file. Line:%d\n", __LINE__);
-				free_screen(*screen, *screen_size);
-				exit(1);
-			}
-			
-			// On the next line the first argument is the max resolution.
-			sscanf(buffer, "%s %n", (*screen)[moni]->max_mode, &index);
-			ptr = buffer + index;
-			
-			// Strip non float characters from the input.
-			for (int i = 0; i < strlen(ptr); i++) {
-				if (ptr[i] != '.' && (ptr[i] < '0' || ptr[i] > '9'))
-					ptr[i] = ' ';
-			}
-
-			// Recursivly read the float refresh rate and place the max into the struct disp.
-			while (sscanf(ptr, "%lf %n", &temp, &index) != EOF) {
-				if (temp > (*screen)[moni]->max_rate)
-					(*screen)[moni]->max_rate = temp;
-				ptr += index;					
-			}
-			
-			moni++;
-		}
-	}
-	pclose(ep);
-}
-
-FILE* get_config_stream() {
+FILE*
+getConfigStream()
+{
 	char *env;
 	char filepath[512];
 
@@ -137,7 +363,9 @@ FILE* get_config_stream() {
 	return fopen(filepath, "r");
 }
 
-long get_screen_offset(monitor **screen, int screen_size, FILE *fp) {
+long
+getScreenOffset(FILE *fp)
+{
 	char *ptr;
 	char buffer[512];
 	
@@ -146,7 +374,7 @@ long get_screen_offset(monitor **screen, int screen_size, FILE *fp) {
 	bool inloop = false;
 
 	while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-		ptr = strip_whitespace(buffer);
+		ptr = stripWhitespace(buffer);
 
 		// Ignore comments.
 		if (ptr[0] == '#')
@@ -155,7 +383,7 @@ long get_screen_offset(monitor **screen, int screen_size, FILE *fp) {
 		// Handle section start.
 		if (!strcmp(ptr, "Section Screen")) {
 			if (inloop) {
-				return -1;
+				return 1;
 			} else {
 				offset = ftell(fp);
 				inloop = true;
@@ -167,37 +395,39 @@ long get_screen_offset(monitor **screen, int screen_size, FILE *fp) {
 		// Handle section end.
 		if (!strcmp(ptr, "EndSection")) {
 			if (inloop) {
-				if (match_count == screen_size)
+				if (match_count == screenSize)
 					return offset;
 				inloop = false;
 				continue;
 			} else {
-				return -1;
+				return 1;
 			}
 		}
 
 		// Check if the monitor id matches with a connected one.
 		if (strstr(ptr, "Monitor ") == ptr) {
 			ptr += 8;
-			for (int i = 0; i < screen_size; i++) 
-				if (!strcmp(screen[i]->id, ptr))
+			for (int i = 0; i < screenSize; i++) 
+				if (!strcmp(screen[i]->name, ptr))
 					match_count++;
 		}
 	}
-	return -2;
+	return 1;
 }
 
-int get_options(monitor **screen, int screen_size, FILE *fp, long offset) {
+int
+getOptions(FILE *fp, long offset)
+{
 	char buffer[512];
 	char *ptr;
 
 	int moni = -1;
 
 	if (fseek(fp, offset, SEEK_SET))
-		return -1;
+		return 1;
 
 	while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-		ptr = strip_whitespace(buffer);
+		ptr = stripWhitespace(buffer);
 		if (ptr[0] == '#')
 			continue;
 
@@ -207,8 +437,8 @@ int get_options(monitor **screen, int screen_size, FILE *fp, long offset) {
 		// Get index of the montior, from the connected ones.
 		if (strstr(ptr, "Monitor ") == ptr) {
 			ptr += 8;
-			for (int i = 0; i < screen_size; i++)
-				if (!strcmp(screen[i]->id, ptr)) {
+			for (int i = 0; i < screenSize; i++)
+				if (!strcmp(screen[i]->name, ptr)) {
 					moni = i;
 					break;
 				}
@@ -222,21 +452,41 @@ int get_options(monitor **screen, int screen_size, FILE *fp, long offset) {
 				continue;
 			}
 
-			if (strstr(ptr, "Position ") == ptr) {
-				ptr += 9;
-				sscanf(ptr, "%s %s", screen[moni]->pos_arg, screen[moni]->pos_id);
+			if (strstr(ptr, "xOffset ") == ptr) {
+				ptr += 8;
+				sscanf(ptr, "%u", &screen[moni]->xOffset);
+				continue;
+			}
+
+			if (strstr(ptr, "yOffset ") == ptr) {
+				ptr += 8;
+				sscanf(ptr, "%u", &screen[moni]->yOffset);
+				continue;
+			}
+
+			if (strstr(ptr, "Rotate ") == ptr) {
+				ptr += 7;
+				sscanf(ptr, "%s", buffer);
+				if (!strcmp(buffer, "normal"))
+					screen[moni]->rotation = RR_Rotate_0;
+				else if (!strcmp(buffer, "inverted"))
+					screen[moni]->rotation = RR_Rotate_180;
+				else if (!strcmp(buffer, "left"))
+					screen[moni]->rotation = RR_Rotate_270;
+				else if (!strcmp(buffer, "right"))
+					screen[moni]->rotation = RR_Rotate_90;
 				continue;
 			}
 
 			if (strstr(ptr, "Refresh Rate ") == ptr) {
 				ptr += 13;
-				sscanf(ptr, "%lf", &screen[moni]->config_rate);
+				sscanf(ptr, "%lf", &screen[moni]->m->rate);
 				continue;
 			}
 
 			if (strstr(ptr, "Resolution ") == ptr) {
 				ptr += 11;
-				sscanf(ptr, "%s", screen[moni]->config_mode);
+				sscanf(ptr, "%ux%u", &screen[moni]->m->width, &screen[moni]->m->height);
 				continue;
 			}
 		}
@@ -244,194 +494,37 @@ int get_options(monitor **screen, int screen_size, FILE *fp, long offset) {
 	return 1;
 }
 
-int check_screen_args(monitor **screen, int screen_size) {
-	bool has_primary = false;
-	bool arg;
-
-	for (int i = 0; i < screen_size; i++) {
-		// Check if id, refresh rate and mode are defined.
-		if (screen[i]->id[0] == '\0')
-			return -1;
-		if (screen[i]->config_rate == screen[i]->max_rate && screen[i]->max_rate == -1)
-			return -2;
-		if (screen[i]->config_mode[0] == screen[i]->max_mode[0] && screen[i]->max_mode[0] == '\0')
-			return -3;
-
-		// Check if the position argument and id are correct.
-		arg = false;
-		if (!strcmp(screen[i]->pos_arg, "right"))
-			arg = true;
-		else if (!strcmp(screen[i]->pos_arg, "left"))
-			arg = true;
-		else if (!strcmp(screen[i]->pos_arg, "above"))
-			arg = true;
-		else if (!strcmp(screen[i]->pos_arg, "below"))
-			arg = true;
-		else if (!strcmp(screen[i]->pos_arg, "same"))
-			arg = true;
-		else if (screen[i]->pos_arg[0] =='\0' && screen[i]->primary)
-			arg = true;
-
-		if (!arg)
-			return -4;
-
-		if (!strcmp(screen[i]->id, screen[i]->pos_id))
-				continue;
-
-		arg = false;
-		for (int j = 0; j < screen_size; j++)
-			if (!strcmp(screen[j]->id, screen[i]->pos_id))
-				arg = true;
-		
-		if (screen[i]->pos_id[0] =='\0' && screen[i]->primary)
-			arg = true;
-
-		if (!arg)
-			return -5;
-
-		// Check if there is only one primary display.
-		if (screen[i]->primary) {
-			if (!has_primary) {
-				has_primary = true;
-			} else {
-				return -6;
-			}
-		}
-	}
-	return 0;
-}
-
-int get_config_args(monitor **screen, int screen_size) {
+int
+getConfigArgs()
+{
 	FILE *fp;
 	long offset;
 
-	if ((fp = get_config_stream()) == NULL)
-		return -1;
+	if ((fp = getConfigStream()) == NULL)
+		return 1;
 	
-	if ((offset = get_screen_offset(screen, screen_size, fp)) < 0) {
+	if ((offset = getScreenOffset(fp)) < 0) {
 		fclose(fp);
-		return -2;
+		return 1;
 	}
 
-	if (get_options(screen, screen_size, fp, offset)) {
+	if (getOptions(fp, offset)) {
 		fclose(fp);
-		return -3;
+		return 1;
 	}
 
 	fclose(fp);
 	return 0;
 }
 
-char** get_exec_string(monitor **screen, int screen_size) {
-	char **exec;
-	char temp[64];
+int
+main(int argc, char *argv[])
+{
+	initializeX();
+	getScreenMaxValues();
 
-	int index = 0;
-	int row_size = 9 * screen_size + 2;
-
-	// Allocate exec array.
-	if ((exec = (char**) malloc(row_size * sizeof(char*))) == NULL) {
-		fprintf(stderr, "malloc() returned null pointer for exec. Line: %d\n", __LINE__);
-		free_screen(screen, screen_size);
-		exit(-1);
-	}
-
-	for (int i = 0; i < row_size; i++) {
-		if ((exec[i] = (char*) malloc(32 * sizeof(char))) == NULL) {
-			fprintf(stderr, "malloc() returned null pointer for exec[%d]. Line: %d\n", i, __LINE__);
-			free_screen(screen, screen_size);
-			for (int j = 0; j < i; j++) {
-				if (exec[j] != NULL)
-					free(exec[j]);
-			}
-			free(exec);
-			exit(-1);
-		}
-	}
-	
-	strcpy(exec[index++], "xrandr");
-
-	for (int i = 0; i < screen_size; i++) {
-		strcpy(exec[index++], "--output");
-		strcpy(exec[index++], screen[i]->id);
-
-		if (screen[i]->config_rate < 0) {
-			sprintf(temp, "%.2f", screen[i]->max_rate);
-		} else {
-			sprintf(temp, "%.2f", screen[i]->config_rate);
-		}
-
-		strcpy(exec[index++], "--rate");
-		strcpy(exec[index++], temp);
-
-		strcpy(exec[index++], "--mode");
-
-		if (screen[i]->config_mode[0] == '\0') {
-			strcpy(exec[index++], screen[i]->max_mode);
-		} else {
-			strcpy(exec[index++], screen[i]->config_mode);
-		}
-		
-		if (screen[i]->primary) {
-			strcpy(exec[index++], "--primary");
-		} else {
-			if (!strcmp(screen[i]->pos_arg, "right") || !strcmp(screen[i]->pos_arg, "left"))
-				sprintf(temp, "--%s-of", screen[i]->pos_arg);
-			else
-				sprintf(temp, "--%s", screen[i]->pos_arg);
-			
-			strcpy(exec[index++], temp);
-			strcpy(exec[index++], screen[i]->pos_id);
-		}
-	}
-	for (int i = index; i < row_size; i++)
-		free(exec[i]);
-
-	exec = (char**) realloc(exec, (index + 1) * sizeof (char*));
-	exec[index] = NULL;
-	return exec;
-}
-
-char** get_auto_exec() {
-	char **exec;
-
-	if ((exec = (char**) malloc(3 * sizeof(char*))) == NULL) {
-		fprintf(stderr, "malloc() returned null pointer for exec. Line: %d\n", __LINE__);
-		exit(-1);
-	}
-	for (int i = 0; i < 2; i++) {
-		if ((exec[i] = (char*) malloc(32 * sizeof(char))) == NULL) {
-			fprintf(stderr, "malloc() returned null pointer for exec[%d]. Line: %d\n", i, __LINE__);
-			exit(-1);
-		}
-	}
-
-	strcpy(exec[0], "xrandr");
-	strcpy(exec[1], "--auto");
-	exec[2] = NULL;
-	
-	return exec;
-}
-
-int main(int argc, char *argv[]) {
-	monitor **screen = NULL;
-	char **exec;
-
-	int screen_size = 0;
-
-	get_xrandr_args(&screen, &screen_size);
-	get_config_args(screen, screen_size);
-
-	if (check_screen_args(screen, screen_size)) {
-		free_screen(screen, screen_size);
-		exec = get_auto_exec();
-	} else {
-		exec = get_exec_string(screen, screen_size);
-		free_screen(screen, screen_size);
-	}
-
-	execv("/bin/xrandr", exec);
-
-	fprintf(stderr, "execv() failed for \"xrandr\". Line:%d", __LINE__);
-	return 1;
+	getConfigArgs();	
+	setScreen();
+	freeApplication();
+	return 0;
 }

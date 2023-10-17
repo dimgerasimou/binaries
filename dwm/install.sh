@@ -5,7 +5,7 @@ path="$HOME/.local/bin/dwm"
 cscripts="audiocontrol mediacontrol takescreenshot xrandr"
 shscripts="autostart.sh layoutmenu"
 
-CFLAGS="-Os -Wall"
+CFLAGS="-Os -Wall -lX11 -lXrandr"
 LFLAGS="`pkg-config --cflags --libs libnotify`"
 
 uninstall() {

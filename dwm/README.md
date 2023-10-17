@@ -59,7 +59,7 @@ Compile time:
 ### Usage
 
 Running this executable, querries the `$HOME/.config/xrandr/displaysetup.conf` file to find the first xrandr screen setup by comparing the
-connected monitor names with each screen defined in the configuration file, then updates the xrandr with the parsed configuration.
+connected monitor names with each screen defined in the configuration file, then updates xrandr with the parsed configuration.
 
 ### Example
 
@@ -68,9 +68,11 @@ Section Screen
 	Monitor HDMI-0
 		Primary
 		Refresh Rate 75.00
-	Monitor eDP-1
-		Position left HDMI-0
+	Monitor HDMI-1
+		xOffset 1920
+		yOffset 1080
 		Resolution 1920x1080
+		Rotate right
 EndSection
 
 ```
@@ -79,7 +81,10 @@ If the refresh rate or the resolution are not defined in a given monitor, the de
 
 ### Dependencies
 
-- xrandr
+Compile time:
+
+- libx11
+- libxrandr
 
 ## dwm.desktop
 
