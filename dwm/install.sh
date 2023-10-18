@@ -2,7 +2,7 @@
 
 path="$HOME/.local/bin/dwm"
 
-cscripts="audiocontrol mediacontrol takescreenshot xrandr"
+cscripts="audiocontrol mediacontrol takescreenshot xrandr-set"
 shscripts="autostart.sh layoutmenu"
 
 CFLAGS="-Os -Wall -lX11 -lXrandr"

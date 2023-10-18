@@ -105,8 +105,8 @@ int execvfork(char *path, char *argv[]) {
 		char log[512];
 
 		sprintf(log, "Critical Error: fork failed:%s", strerror(errno));
-				writelog(log);
-			exit(EXIT_FAILURE);
+		writelog(log);
+		exit(EXIT_FAILURE);
 	} else if (pID == 0) { //Child
 		char buffer[2];
 

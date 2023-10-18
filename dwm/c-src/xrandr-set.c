@@ -216,8 +216,8 @@ getModes()
 				if (output->modes[j] == resources->modes[k].id) {
 					minf = &resources->modes[j];
 					if (minf->width == m->width && minf->height == m->height) {
-						sprintf(str1, "%.1lf", m->rate);
-						sprintf(str2, "%.1lf", (double) minf->dotClock / (double) (minf->hTotal * minf->vTotal));
+						sprintf(str1, "%.0lf", m->rate);
+						sprintf(str2, "%.0lf", (double) minf->dotClock / (double) (minf->hTotal * minf->vTotal));
 						if (!strcmp(str1, str2)) {
 							m->id = minf->id;
 							goto LOOPEND;
@@ -312,39 +312,6 @@ getOptions(FILE *fp, long offset)
 	return 1;
 }
 
-void
-setScreen()
-{
-	
-	for (int i = 0; i < screenSize; i++) {
-		if (screen[i]->rotation == RR_Rotate_90 || screen[i]->rotation == RR_Rotate_270) {
-			unsigned int temp = screen[i]->m->height;
-			screen[i]->m->height = screen[i]->m->width;
-			screen[i]->m->width = temp;
-		}
-	}
-	expandScreenSize(false);
-	XRROutputInfo *output;
-	XRRCrtcInfo *crtc;
-
-	for (int i = 0; i < resources->noutput; i++) {
-		output = XRRGetOutputInfo(dpy, resources, resources->outputs[i]);
-		for (int j = 0; j < screenSize; j++) {
-			if (!strcmp(screen[j]->name, output->name)) {
-				crtc = XRRGetCrtcInfo(dpy, resources, output->crtc);
-				XRRSetCrtcConfig(dpy, resources, output->crtc,
-				                 crtc->timestamp, screen[j]->xOffset, screen[j]->yOffset,
-						 screen[j]->m->id, screen[j]->rotation, crtc->outputs,
-						 crtc->noutput);
-				XRRFreeCrtcInfo(crtc);
-				if (screen[j]->primary)
-					XRRSetOutputPrimary(dpy, root, resources->outputs[i]);
-			}
-		}
-		XRRFreeOutputInfo(output);
-	}
-	expandScreenSize(true);
-}
 
 void
 getScreenMaxValues()
@@ -426,6 +393,40 @@ initializeX()
 
 	root = XDefaultRootWindow(dpy);
 	resources = XRRGetScreenResources(dpy, root);
+}
+
+void
+setScreen()
+{
+	
+	for (int i = 0; i < screenSize; i++) {
+		if (screen[i]->rotation == RR_Rotate_90 || screen[i]->rotation == RR_Rotate_270) {
+			unsigned int temp = screen[i]->m->height;
+			screen[i]->m->height = screen[i]->m->width;
+			screen[i]->m->width = temp;
+		}
+	}
+	expandScreenSize(false);
+	XRROutputInfo *output;
+	XRRCrtcInfo *crtc;
+
+	for (int i = 0; i < resources->noutput; i++) {
+		output = XRRGetOutputInfo(dpy, resources, resources->outputs[i]);
+		for (int j = 0; j < screenSize; j++) {
+			if (!strcmp(screen[j]->name, output->name)) {
+				crtc = XRRGetCrtcInfo(dpy, resources, output->crtc);
+				XRRSetCrtcConfig(dpy, resources, output->crtc,
+				                 crtc->timestamp, screen[j]->xOffset, screen[j]->yOffset,
+						 screen[j]->m->id, screen[j]->rotation, crtc->outputs,
+						 crtc->noutput);
+				XRRFreeCrtcInfo(crtc);
+				if (screen[j]->primary)
+					XRRSetOutputPrimary(dpy, root, resources->outputs[i]);
+			}
+		}
+		XRRFreeOutputInfo(output);
+	}
+	expandScreenSize(true);
 }
 
 char*

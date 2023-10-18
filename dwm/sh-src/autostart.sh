@@ -4,7 +4,7 @@
 
 setxkbmap -layout us,gr -option grp:win_space_toggle
 
-$HOME/.local/bin/dwm/xrandr
+$HOME/.local/bin/dwm/xrandr-set
 
 (sleep 0.2 && (nohup easyeffects --gapplication-service &)) &
 (sleep 1 && ($HOME/.local/bin/dwm/audiocontrol sink set 0.8) && ($HOME/.local/bin/dwm/audiocontrol source set 1)) &
