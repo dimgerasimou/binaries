@@ -217,7 +217,7 @@ getModes()
 					minf = &resources->modes[j];
 					if (minf->width == m->width && minf->height == m->height) {
 						sprintf(str1, "%.1lf", m->rate);
-						sprintf(str2, "%.1lf", (double) (double) minf->dotClock / (double) (minf->hTotal * minf->vTotal));
+						sprintf(str2, "%.1lf", (double) minf->dotClock / (double) (minf->hTotal * minf->vTotal));
 						if (!strcmp(str1, str2)) {
 							m->id = minf->id;
 							goto LOOPEND;
