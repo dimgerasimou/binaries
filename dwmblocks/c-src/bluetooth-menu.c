@@ -31,7 +31,7 @@ int printmenu(char *menu, int menusize) {
 			dup2(readpipe[1], STDOUT_FILENO);
 			close(readpipe[1]);
 			
-			execl("/usr/local/bin/xmenu", "xmenu", NULL);
+			execl("/usr/bin/xmenu", "xmenu", NULL);
 			exit(EXIT_SUCCESS);
 
 		default: /* parent */
