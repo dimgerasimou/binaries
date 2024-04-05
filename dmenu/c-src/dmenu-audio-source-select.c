@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <sys/wait.h>
 
-
 typedef struct {
 	int id;
 	char *name;
@@ -13,6 +12,8 @@ typedef struct {
 
 sink *sinks;
 int sinksnum = 0;
+const char *configpath = "/.config/dmenu/ignoreaudiosinks";
+const char *defaultvol = "0.8";
 
 int parseline(int *id, char *string) {
 	char tstr[512];
@@ -29,11 +30,34 @@ int parseline(int *id, char *string) {
 	return 0;
 }
 
+void cleanstring(char *string) {
+	char *ptr;
+	char temp[256];
+
+	for (ptr = string; *ptr != '\0'; ptr++) {
+		if (*ptr > ' ')
+			break;
+	}
+	strcpy(temp, ptr);
+	ptr = temp + strlen(temp) - 1;
+
+	while (ptr >= temp) {
+		if (*ptr > ' ') {
+			*(ptr+1) = '\0';
+			break;
+		}
+		ptr--;
+	}
+
+	strcpy(string, temp);
+}
+
 void appendsink(int id, char *name) {
 	sinksnum++;
 	sinks = (sink*) realloc(sinks, sinksnum * sizeof(sink));
 	sinks[sinksnum-1].name = (char*) malloc((strlen(name)+1) * sizeof(char));
 	sinks[sinksnum-1].id = id;
+	cleanstring(name);
 	strcpy(sinks[sinksnum-1].name, name);
 }
 
@@ -42,6 +66,44 @@ void freesinks() {
 		free(sinks[i].name);
 	}
 	free(sinks);
+}
+
+void deletesink(int index) {
+	free(sinks[index].name);
+	for (int i = index; i < sinksnum - 1; i++) {
+		sinks[i].name = sinks[i+1].name;
+		sinks[i].id = sinks[i+1].id;
+	}
+	sinksnum--;
+	sinks = (sink*) realloc(sinks, sinksnum * sizeof(sink));
+}
+
+void removeignoredsinks() {
+	FILE *fp = NULL;
+	char path[256];
+	char *env = NULL;
+	char buffer[256];
+
+	env = getenv("HOME");
+	if (env == NULL)
+		exit(-1);
+	strcpy(path, env);
+	strcat(path, configpath);
+
+	fp = fopen(path, "r");
+	if (fp == NULL)
+		return;
+
+	while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+		cleanstring(buffer);
+		for (int i = 0; i < sinksnum; i++) {
+			if (strcmp(buffer, sinks[i].name) == 0) {
+				deletesink(i);
+				break;
+			}
+		}
+	}
+	fclose(fp);
 }
 
 int parseinput() {
@@ -100,7 +162,7 @@ int printmenu(char *menu, int menusize) {
 	int option=-1;
 	int writepipe[2], readpipe[2];
 	char buffer[512] = "";
-	char *ptr;
+	char *ptr = NULL;
 
 	if (pipe(writepipe) < 0 || pipe(readpipe) < 0) {
 		perror("Failed to initialize pipes");
@@ -120,7 +182,7 @@ int printmenu(char *menu, int menusize) {
 			dup2(readpipe[1], STDOUT_FILENO);
 			close(readpipe[1]);
 			
-			execl("/usr/local/bin/dmenu", "dmenu", "-c", "-l", "20", "-p", "Select your audio output:", NULL);
+			execl("/usr/local/bin/dmenu", "dmenu", "-c", "-l", "20", "-nn", "-p", "Select the audio sink:", NULL);
 			exit(EXIT_SUCCESS);
 
 		default: /* parent */
@@ -133,6 +195,8 @@ int printmenu(char *menu, int menusize) {
 			close(readpipe[0]);
 	}
 	ptr = strchr(buffer, '\t');
+	if (ptr == NULL)
+		return -1;
 	if (ptr[0] != '\0')
 		sscanf(ptr, "%d", &option);
 	return option;
@@ -151,15 +215,43 @@ int getsink() {
 void execoption(int option) {
 	char opt[8];
 	sprintf(opt, "%d", option);
-	execl("/bin/wpctl", "wpctl", "set-default", opt, NULL);
+	switch (fork()) {
+		case -1:
+			perror("Failed in forking");
+			exit(EXIT_FAILURE);
+
+		case 0: /* child - xmenu */
+			execl("/bin/wpctl", "wpctl", "set-default", opt, NULL);
+			exit(EXIT_FAILURE);
+
+		default: /* parent */
+			wait(NULL);
+			
+	}
+	switch (fork()) {
+		case -1:
+			perror("Failed in forking");
+			exit(EXIT_FAILURE);
+
+		case 0: /* child - xmenu */
+			execl("/bin/wpctl", "wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", defaultvol, NULL);
+			exit(EXIT_FAILURE);
+		
+		default: /* parent */
+			wait(NULL);			
+	}
+	execl("/usr/local/bin/dwmblocksctl", "dwmblocksctl", "-s", "volume", NULL);
 }
 
 int main(void) {
 	int option;
 	if (parseinput())
 		return 1;
+	removeignoredsinks();
 
 	option = getsink();
+	if (option == -1) // So it doesnt segfault at esc
+		return -1;
 	execoption(option);
 	return 0;
 }
