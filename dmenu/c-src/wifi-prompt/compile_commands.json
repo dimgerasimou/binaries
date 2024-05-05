@@ -1,0 +1,28 @@
+[
+ {
+  "directory": "/home/dimgerasimou/.local/src/binaries/dmenu/c-src/wifi-prompt",
+  "arguments": [
+   "cc",
+   "-o",
+   "bin/dmenu-wifi-prompt",
+   "main.c",
+   "-pedantic",
+   "-Wall",
+   "-Wno-deprecated-declarations",
+   "-Os",
+   "-lm",
+   "-I/usr/include/libnm",
+   "-I/usr/include/glib-2.0",
+   "-I/usr/lib/glib-2.0/include",
+   "-I/usr/include/libmount",
+   "-I/usr/include/blkid",
+   "-I/usr/include/sysprof-6",
+   "-pthread",
+   "-lnm",
+   "-lgio-2.0",
+   "-lgobject-2.0",
+   "-lglib-2.0"
+  ],
+  "file": "main.c"
+ }
+]

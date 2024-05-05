@@ -19,5 +19,7 @@ feh --bg-fill $HOME/.local/state/dwm/wallpaper.jpg
 
 /usr/bin/dunst &
 
+/usr/bin/solaar --restart-on-wake-up --window hide --tray-icon-size 2 --battery-icons solaar &
+
 (sleep 0.2 && (/usr/bin/systemctl --user import-environment DISPLAY)) &
 (sleep 0.3 && (/usr/bin/clipmenud &)) &
