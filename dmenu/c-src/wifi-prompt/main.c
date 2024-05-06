@@ -5,6 +5,8 @@
 #include <sys/wait.h>
 #include <NetworkManager.h>
 
+#define NM_FLAGS_ANY(flags, check)  ((((flags) & (check)) != 0) ? TRUE : FALSE)
+
 /* struct declerations*/
 
 typedef struct {
@@ -28,11 +30,11 @@ typedef struct {
 /* function declerations */
 
 APDetails*     access_point_to_struct(NMAccessPoint *ap, int index);
-static void    add_connection(NMClient *client, GMainLoop *loop, NMAccessPoint *ap);
+static void    add_cb(GObject *client, GAsyncResult *result, gpointer user_data);
+static void    add_connection(NMClient *client, NMAccessPoint *ap, GMainLoop *loop);
 void           ap_list_free(APList *list);
 void           ap_list_set_bounds(APList *list);
 char*          ap_list_to_string(APList *list);
-static void    callback(GObject *client, GAsyncResult *result, gpointer user_data);
 NMAccessPoint* get_access_point(NMClient *client, NMDevice **device);
 int            get_ap_input(char *menu, char *prompt);
 char*          get_password(NMAccessPoint *ap);
@@ -68,53 +70,105 @@ access_point_to_struct(NMAccessPoint *ap, int index)
 }
 
 static void
-add_connection(NMClient *client, GMainLoop *loop, NMAccessPoint *ap)
+add_cb(GObject *client, GAsyncResult *result, gpointer user_data)
+{
+	NMRemoteConnection *remote_connection = NULL;
+	GError *error = NULL;
+
+	remote_connection = nm_client_add_connection_finish(NM_CLIENT(client), result, &error);
+
+	if (error) {
+		g_print("Error adding connection: %s", error->message);
+		g_error_free(error);
+	} else {
+		g_object_unref(remote_connection);
+	}
+	
+	g_main_loop_quit((GMainLoop*) user_data);
+}
+
+static void
+add_connection(NMClient *client, NMAccessPoint *ap, GMainLoop *loop)
 {
 	NMConnection              *connection = NULL;
 	NMSettingConnection       *s_con = NULL;
 	NMSettingWireless         *s_wireless = NULL;
 	NMSettingIP4Config        *s_ip4 = NULL;
-	NMSettingWirelessSecurity *s_secure = NULL;
-	GBytes                    *ssid_struct = NULL;
-	const char                *uuid = NULL;
-	const char                *ssid = NULL;
-	const char                *password = NULL;
+	NMSettingWirelessSecurity *s_wsec = NULL;
+	GBytes                    *ssid_struct;
+	GString                   *ssid;
+	guint32                   ap_wpa_flags, ap_rsn_flags;
+	const char                *uuid;
+	const char                *password;
 
 	connection  = nm_simple_connection_new();
 	s_wireless  = (NMSettingWireless *) nm_setting_wireless_new();
-	s_secure    = (NMSettingWirelessSecurity *) nm_setting_wireless_security_new();
 	s_con       = (NMSettingConnection *) nm_setting_connection_new();
+	s_wsec      = (NMSettingWirelessSecurity*) nm_setting_wireless_security_new();
 	ssid_struct = nm_access_point_get_ssid(ap);
 	uuid        = nm_utils_uuid_generate();
-	password    = get_password(ap);
+	password    = NULL;
 
 	if (ssid_struct)
-		ssid = nm_utils_ssid_to_utf8(g_bytes_get_data(ssid_struct, NULL), g_bytes_get_size(ssid_struct));
+		ssid = g_string_new(nm_utils_ssid_to_utf8(g_bytes_get_data(ssid_struct, NULL), g_bytes_get_size(ssid_struct)));
 	else
-		ssid = g_strdup("--");
+		ssid = g_string_new("---");
 
 	g_object_set(G_OBJECT(s_con),
 	             NM_SETTING_CONNECTION_UUID, uuid,
-	             NM_SETTING_CONNECTION_ID, ssid,
+	             NM_SETTING_CONNECTION_ID, ssid->str,
 	             NM_SETTING_CONNECTION_TYPE, "802-11-wireless",
 	             NULL);
 	nm_connection_add_setting(connection, NM_SETTING(s_con));
 
-	s_wireless = (NMSettingWireless *)nm_setting_wireless_new();
-
 	g_object_set(G_OBJECT(s_wireless),
 	             NM_SETTING_WIRELESS_SSID, ssid,
+		     NM_SETTING_WIRELESS_HIDDEN, FALSE,
 	             NULL);
 	nm_connection_add_setting(connection, NM_SETTING(s_wireless));
 
-	if (password && password[0]!='\0') {
-		s_secure = (NMSettingWirelessSecurity *)nm_setting_wireless_security_new();
-		g_object_set(G_OBJECT(s_secure),
-		             NM_SETTING_WIRELESS_SECURITY_KEY_MGMT, "wpa-psk",
-		             NM_SETTING_WIRELESS_SECURITY_PSK, password,
-		             NULL);
-		nm_connection_add_setting(connection, NM_SETTING(s_secure));
+	ap_wpa_flags = nm_access_point_get_wpa_flags(ap);
+	ap_rsn_flags = nm_access_point_get_rsn_flags(ap);
+
+	if ((ap_wpa_flags != NM_802_11_AP_SEC_NONE
+	     && !NM_FLAGS_ANY(ap_wpa_flags,
+	                      NM_802_11_AP_SEC_KEY_MGMT_OWE | NM_802_11_AP_SEC_KEY_MGMT_OWE_TM))
+	     || (ap_rsn_flags != NM_802_11_AP_SEC_NONE
+	     && !NM_FLAGS_ANY(ap_rsn_flags,
+	                      NM_802_11_AP_SEC_KEY_MGMT_OWE | NM_802_11_AP_SEC_KEY_MGMT_OWE_TM))) {
+		const char *con_password = NULL;
+
+		if (ap_wpa_flags == NM_802_11_AP_SEC_NONE
+		    && ap_rsn_flags == NM_802_11_AP_SEC_NONE) {
+			con_password = nm_setting_wireless_security_get_wep_key(s_wsec, 0);
+		} else if ((ap_wpa_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK)
+		         || (ap_rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK)
+		         || (ap_rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_SAE)) {
+			con_password = nm_setting_wireless_security_get_psk(s_wsec);
+		}
+
+		if (!password && !con_password) {
+			password = get_password(ap);
+		}
+
+		if (password) {
+			if (ap_wpa_flags == NM_802_11_AP_SEC_NONE && ap_rsn_flags == NM_802_11_AP_SEC_NONE) {
+				nm_setting_wireless_security_set_wep_key(s_wsec, 0, password);
+				g_object_set(G_OBJECT(s_wsec),
+				             NM_SETTING_WIRELESS_SECURITY_WEP_KEY_TYPE,
+				             NM_WEP_KEY_TYPE_KEY,
+				             NULL);
+			} else if ((ap_wpa_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK)
+			            || (ap_rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK)
+			            || (ap_rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_SAE)) {
+				g_object_set(G_OBJECT(s_wsec),
+				NM_SETTING_WIRELESS_SECURITY_KEY_MGMT, "wpa-psk",
+				NM_SETTING_WIRELESS_SECURITY_PSK, password, NULL);
+			}
+		}
 	}
+
+	nm_connection_add_setting(connection, NM_SETTING(s_wsec));
 
 	s_ip4 = (NMSettingIP4Config *)nm_setting_ip4_config_new();
 	g_object_set(G_OBJECT(s_ip4),
@@ -122,10 +176,9 @@ add_connection(NMClient *client, GMainLoop *loop, NMAccessPoint *ap)
 	             NM_SETTING_IP4_CONFIG_METHOD_AUTO,
 	             NULL);
 	nm_connection_add_setting(connection, NM_SETTING(s_ip4));
-	puts("?");
-
-	nm_client_add_connection_async(client, connection, TRUE, NULL, callback, loop);
-	puts("?");
+	
+	nm_client_add_connection_async(client, connection, TRUE, NULL, add_cb, loop);	
+	
 	g_object_unref(connection);
 }
 
@@ -202,25 +255,6 @@ ap_list_to_string(APList *list)
 	return ret;
 }
 
-static void
-callback(GObject *client, GAsyncResult *result, gpointer user_data)
-{
-	NMRemoteConnection *remote;
-	GError *error = NULL;
-
-	remote = nm_client_add_connection_finish(NM_CLIENT(client), result, &error);
-
-	if (error) {
-		g_print("Error adding connection: %s", error->message);
-		g_error_free(error);
-	} else {
-		g_print("Added: %s\n", nm_connection_get_path(NM_CONNECTION(remote)));
-		g_object_unref(remote);
-	}
-
-	g_main_loop_quit((GMainLoop *)user_data);
-}
-
 NMAccessPoint*
 get_access_point(NMClient *client, NMDevice **device)
 {
@@ -272,7 +306,7 @@ get_ap_input(char *menu, char *prompt)
 	int  option=-1;
 	int  menusize = strlen(menu);
 	int  writepipe[2], readpipe[2];
-	char buffer[64] = "";
+	char buffer[512] = "";
 	char *ptr;
 
 	if (pipe(writepipe) < 0 || pipe(readpipe) < 0) {
@@ -349,6 +383,12 @@ get_password(NMAccessPoint *ap)
 			wait(NULL);
 			read(readpipe[0], buffer, sizeof(buffer));
 			close(readpipe[0]);
+	}
+	for (int i = 0; buffer[i] != '\0'; i++) {
+		if(buffer[i] == '\n') {
+			buffer[i] = '\0';
+			break;
+		}
 	}
 	return g_strdup(buffer);
 }
@@ -431,7 +471,10 @@ int main(void) {
 	NMClient      *client = NULL;
 	NMDevice      *device = NULL;
 	NMAccessPoint *ap     = NULL;
-	GMainLoop     *loop   = NULL;
+	GMainLoop     *loop;
+
+	loop = g_main_loop_new(NULL, FALSE);
+
 
 	init_nm_client(&client);
 	ap = get_access_point(client, &device);
@@ -439,9 +482,11 @@ int main(void) {
 	if (!ap)
 		exit(-1);
 
-	add_connection(client, loop, ap);
-	
+	add_connection(client, ap, loop);
+
 	g_main_loop_run(loop);
+
+	g_object_unref(client);
 
 	return 0;
 }

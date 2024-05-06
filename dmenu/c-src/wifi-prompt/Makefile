@@ -1,7 +1,7 @@
 # Wifi prompt with dmenu
 
 CC      := cc
-CFLAGS  := -Wall -Wextra -Werror -Wno-deprecated-declarations -O0 -g
+CFLAGS  := -Wall -Wextra -Werror -Wno-deprecated-declarations -Os
 LDFLAGS := -lm `pkg-config --cflags --libs libnm`
 
 all: options dmenu-wifi-prompt
