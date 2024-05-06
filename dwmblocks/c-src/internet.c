@@ -183,7 +183,6 @@ void execdmenu() {
 			perror("Failed in forking");
 			exit(EXIT_FAILURE);
 		case 0:
-			notify("Network Manager", "Probing wifi access points...", "wifi-radar", NOTIFY_URGENCY_LOW, 0);
 			env = getenv("HOME");
 			strcat(env, dmenuscriptpath);
 			forkexecv(env, (char**) dmenuargs);

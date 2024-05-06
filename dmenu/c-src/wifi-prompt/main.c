@@ -231,14 +231,14 @@ ap_list_to_string(APList *list)
 	lineSize = list->id_max + list->ssid_max + list->security_max + list->strength_max + list->frequency_max+ 13;
 	ret = malloc(lineSize * (list->len+1) * sizeof(char));
 
-	sprintf(temp, "%-*s   %-*s   %*s   %*s\t%*s\n",
+	sprintf(temp, "%-*s   %-*s   %*s   %-*s\t%*s\n",
 	        list->ssid_max, "SSID", list->strength_max, "Strength",
 	        list->security_max, "Security", list->frequency_max, "Frequency",
 	        list->id_max, "-1");
 	strcpy(ret, temp);
 
 	for (int i = 0; i < list->len; i++) {
-		sprintf(temp, "%-*s   %-*s   %*s   %*s\t%*s\n",
+		sprintf(temp, "%-*s   %-*s   %*s   %-*s\t%*s\n",
 		        list->ssid_max, list->ap[i]->ssid,
 		        list->strength_max, list->ap[i]->strength,
 		        list->security_max, list->ap[i]->security,

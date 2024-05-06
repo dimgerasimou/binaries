@@ -1,8 +1,9 @@
 #!/bin/sh
 
 path="$HOME/.local/bin/dmenu"
-scripts="dmenu-wallpaper-selection dmenu-wifiprompt"
+scripts="dmenu-wallpaper-selection"
 cscripts="dmenu-audio-source-select"
+mkscripts="wifi-prompt"
 
 uninstall() {
         echo "Deleting dmenu scripts."
@@ -13,6 +14,10 @@ uninstall() {
 
 	for script in $cscripts; do
 		rm -f $path/$script
+	done
+
+	for script in $mkscripts; do
+		rm -f $path/dmenu-$script
 	done
 
 	if [ -z "$(ls -A $path)" ]; then
@@ -32,6 +37,11 @@ install() {
 	for script in $cscripts; do
 		gcc c-src/$script.c -o c-src/$script
 		mv c-src/$script $path/
+	done
+
+	for script in $mkscripts; do
+		make -C c-src/$script/
+		cp c-src/$script/bin/$script $path/dmenu-$script
 	done
 }
 
