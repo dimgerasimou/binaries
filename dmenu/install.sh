@@ -45,12 +45,23 @@ install() {
 	done
 }
 
+clean() {
+	echo "Cleaning dmenu scripts."
+
+	for script in $mkscripts; do
+		make -C c-src/$script/ clean
+	done
+}
+
 case $1 in
 	-r|--uninstall)
 		uninstall;;
+	
+	-c|--clean)
+		clean;;
 
 	-h|--help)
-		echo "Usage: install.sh [-r | --uninstall]"
+		echo "Usage: install.sh [-r | --uninstall] [-c | --clean]"
 		echo "default: install";;
 	
 	-*|--*)
