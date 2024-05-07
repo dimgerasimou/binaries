@@ -24,7 +24,7 @@ struct devprop {
 const char *iconarray[] = {"x", "tdenetworkmanager", "wifi-radar", "tdenetworkmanager"};
 const char *nmtuipath = "/usr/local/bin/st";
 const char *nmtuiargs[] = {"st", "-e", "nmtui", NULL};
-const char dmenuscriptpath[] = "/.local/bin/dmenu/dmenu-wifiprompt";
+const char dmenuscriptpath[] = "/.local/bin/dmenu/dmenu-wifi-prompt";
 const char *dmenuargs[] = {"dmenu-wifiprompt", NULL};
 
 void getnames(char *edev, char *wdev) {
