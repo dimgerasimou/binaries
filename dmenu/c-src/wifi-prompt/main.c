@@ -522,6 +522,9 @@ get_ap_input(char *menu, char *prompt)
 char*
 get_password(void)
 {
+	if (!strcmp(get_security(ap), "---"))
+		return NULL;
+
 	int  writepipe[2], readpipe[2];
 	char buffer[512] = "";
 
