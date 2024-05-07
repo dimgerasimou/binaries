@@ -1,0 +1,11 @@
+# Wifi prompt
+
+### Usage
+
+A fast and simple wifi prompt made to use dmenu. It works with open or wpa-psk authenticated networks. It checks connectivity and if something is wrong, then it disconnects. Signals dwmblocks to update using my `dwmblocksctl`. Notifies of the results using libnotify.
+
+### Dependencies
+
+- libnotify (buildtime)
+- libnm (buildtime)
+- dwmblocksctl (runtime)
