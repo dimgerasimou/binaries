@@ -2,7 +2,7 @@
 
 CC      := cc
 CFLAGS  := -Wall -Wextra -Werror -Wno-deprecated-declarations -Os
-LDFLAGS := -lm `pkg-config --cflags --libs libnm`
+LDFLAGS := -lm `pkg-config --cflags --libs libnm libnotify`
 
 all: options wifi-prompt
 
