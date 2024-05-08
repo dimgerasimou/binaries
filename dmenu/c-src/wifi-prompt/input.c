@@ -1,6 +1,5 @@
 #include <sys/wait.h>
 #include <unistd.h>
-#include <glib.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -12,10 +11,9 @@ const char *ap_pass_path    = {"/usr/local/bin/dmenu"};
 const char *ap_pass_args[]  = {"dmenu", "-c", "-nn", "-P", "-p", "Enter the AP's password:", NULL};
 
 int
-get_ap_input(char *menu)
+get_ap_input(GString *string)
 {
 	int  option = -1;
-	int  menusize = strlen(menu);
 	int  writepipe[2], readpipe[2];
 	char buffer[512] = "";
 	char *ptr;
@@ -24,6 +22,7 @@ get_ap_input(char *menu)
 		perror("Failed to initialize pipes");
 		exit(EXIT_FAILURE);
 	}
+
 	switch (fork()) {
 		case -1:
 			perror("Failed in forking");
@@ -43,7 +42,7 @@ get_ap_input(char *menu)
 		default: /* parent */
 			close(writepipe[0]);
 			close(readpipe[1]);
-			write(writepipe[1], menu, menusize);
+			write(writepipe[1], string->str, string->len);
 			close(writepipe[1]);
 			wait(NULL);
 			read(readpipe[0], buffer, sizeof(buffer));

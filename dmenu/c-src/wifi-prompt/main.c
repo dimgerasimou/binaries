@@ -383,7 +383,7 @@ get_access_point(NMDetails *nm)
 	}
 
 	string = aps_to_string(aps);
-	return_index = get_ap_input(string->str);
+	return_index = get_ap_input(string);
 
 	if (return_index != -1) {
 		nm->ap = g_ptr_array_index(aps, return_index);

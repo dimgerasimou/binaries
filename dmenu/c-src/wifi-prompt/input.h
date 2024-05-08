@@ -1,7 +1,9 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-int   get_ap_input(char *menu);
+#include <glib.h>
+
+int   get_ap_input(GString *string);
 char* get_password(void);
 int   msleep(long msec);
 
