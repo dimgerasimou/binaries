@@ -63,13 +63,15 @@ void     get_wifi_device(NMDetails *nm);
 static void
 activate_connection_cb(GObject *client, GAsyncResult *result, gpointer user_data)
 {
-	NMDetails               *nm                = user_data;
-	GError                  *error             = NULL;
+	NMDetails  *nm    = user_data;
+	GError     *error = NULL;
 		
 	nm->active_connection = nm_client_activate_connection_finish(NM_CLIENT(client), result, &error);
+
 	if (error) {
 		if (!nm->error)
 			nm->error = g_string_new("");
+		
 		g_string_append_printf(nm->error, "Error activating connection: %s\n", error->message);
 		g_error_free(error);
 		nm->terminate = TRUE;
@@ -381,7 +383,7 @@ get_access_point(NMDetails *nm)
 	}
 
 	string = aps_to_string(aps);
-	return_index = get_ap_input(string->str, "Select the wifi access point:");
+	return_index = get_ap_input(string->str);
 
 	if (return_index != -1) {
 		nm->ap = g_ptr_array_index(aps, return_index);

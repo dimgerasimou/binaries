@@ -6,8 +6,13 @@
 
 #include "input.h"
 
+const char *ap_input_path   = {"/usr/local/bin/dmenu"};
+const char *ap_input_args[] = {"dmenu", "-c", "-nn", "-l", "20", "-p", "Select wifi access point:", NULL};
+const char *ap_pass_path    = {"/usr/local/bin/dmenu"};
+const char *ap_pass_args[]  = {"dmenu", "-c", "-nn", "-P", "-p", "Enter the AP's password:", NULL};
+
 int
-get_ap_input(char *menu, char *prompt)
+get_ap_input(char *menu)
 {
 	int  option = -1;
 	int  menusize = strlen(menu);
@@ -19,7 +24,6 @@ get_ap_input(char *menu, char *prompt)
 		perror("Failed to initialize pipes");
 		exit(EXIT_FAILURE);
 	}
-	
 	switch (fork()) {
 		case -1:
 			perror("Failed in forking");
@@ -33,7 +37,7 @@ get_ap_input(char *menu, char *prompt)
 			dup2(readpipe[1], STDOUT_FILENO);
 			close(readpipe[1]);
 			
-			execl("/usr/local/bin/dmenu", "dmenu", "-c", "-nn", "-l", "20", "-p", prompt, NULL);
+			execv(ap_input_path, (char* const*) ap_input_args);
 			exit(EXIT_FAILURE);
 
 		default: /* parent */
@@ -76,7 +80,7 @@ get_password(void)
 			dup2(readpipe[1], STDOUT_FILENO);
 			close(readpipe[1]);
 			
-			execl("/usr/local/bin/dmenu", "dmenu", "-c", "-nn", "-P", "-p", "Enter the AP's password:", NULL);
+			execv(ap_pass_path, (char* const*) ap_pass_args);
 			exit(EXIT_FAILURE);
 
 		default: /* parent */
