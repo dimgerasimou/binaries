@@ -292,10 +292,8 @@ init_nm_client(NMDetails **nm)
 void
 terminate_client(NMDetails *nm)
 {
-	if (nm->error) {
-		fprintf(stderr, "dmenu-wifi-prompt errors:\n%s", nm->error->str);
-		g_string_free(nm->error, TRUE);
-	}
+	log_string(nm->error);
+	
 	if (nm->message) {
 		notify("Wifi Prompt", nm->message->str, NOTIFY_URGENCY_NORMAL, FALSE);
 		g_string_free(nm->message, TRUE);
@@ -590,7 +588,7 @@ get_wifi_device(NMDetails *nm)
 }
 
 int
-main(void)
+main()
 {
 	NMDetails *nm = NULL;
 

@@ -1,8 +1,62 @@
+#include <libnotify/notification.h>
 #include <libnotify/notify.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <time.h>
+#include <stdlib.h>
 
 #include "output.h"
+
+const char *log_path[] = {"$HOME", "window-manager.log", NULL};
+
+void
+log_string(GString *string)
+{
+	if (!string && string->len < 1)
+		return;
+
+	FILE      *fp;
+	GString   *path;
+	time_t    rawtime;
+	struct tm *timeinfo;
+
+	path = g_string_new("");
+
+	for (int i = 0; log_path[i] != NULL; i++) {
+		if (log_path[i][0] == '$') {
+			const char *ptr = log_path[i] + 1;
+			char *env = getenv(ptr);
+
+			if (!env) {
+				fprintf(stderr, "Failed to get env variable:%s\n", log_path[i]);
+				exit(EXIT_FAILURE);
+			}
+
+			g_string_append_printf(path, "%s/", env);
+		} else {
+			g_string_append_printf(path, "%s/", log_path[i]);
+		}
+	}
+	
+	if (path->len > 0)
+		g_string_truncate(path, path->len - 1);
+
+	if (!(fp = fopen(path->str, "a"))) {
+		fprintf(stderr, "Failed to open in append mode, path:%s\n", path->str);
+		exit(EXIT_FAILURE);
+	}
+
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	fprintf(fp, "%d-%d-%d %d:%d:%d %s\n%s\n", timeinfo->tm_year+1900,
+	        timeinfo->tm_mon+1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, "dmenu-wifi-prompt", string->str);
+	
+	if (string)
+		g_string_free(string, TRUE);
+	if (fp)
+		fclose(fp);
+}
 
 int
 notify(char *summary, char *body, NotifyUrgency urgency, gboolean format_summary)
