@@ -177,13 +177,13 @@ void netproperties(int state) {
 }
 
 void execdmenu() {
-	char *env;
+	char env[512];
 	switch(fork()) {
 		case -1:
 			perror("Failed in forking");
 			exit(EXIT_FAILURE);
 		case 0:
-			env = getenv("HOME");
+			strcpy(env, getenv("HOME"));
 			strcat(env, dmenuscriptpath);
 			forkexecv(env, (char**) dmenuargs);
 			exit(EXIT_SUCCESS);
