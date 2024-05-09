@@ -18,7 +18,7 @@ options:
 .c.o:
 	${CC} -c ${CFLAGS} ${LDFLAGS} $<
 
-${OBJ}: input.h output.c
+${OBJ}: input.h output.h
 
 wifi-prompt: ${OBJ}
 	@echo "making wifi-prompt"
