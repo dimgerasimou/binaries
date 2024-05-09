@@ -21,18 +21,11 @@ uninstall() {
 install() {
 	echo "Copying dwmblocks scripts."
 
-	cd c-src
-	gcc -o loadresources loadresources.c -lX11 -Wall
-	./loadresources
-	rm -f loadresources
-
 	mkdir -p $path
-	for script in $scripts; do
-		gcc -o $script $script.c common.c $CFLAGS $LFLAGS
-		mv $script $path/
-	done
+	
+	make -C status-bar-exec
 
-	cd ..
+	cp status-bar-exec/bin/* $path/
 }
 
 case $1 in

@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "colorscheme.h"	
-#include "common.h"
+#include "../include/colorscheme.h"
+#include "../include/common.h"
 
 const char *termpath   = "/usr/local/bin/st";
 const char *termargs[] = {"st", "-e", "bluetuith", NULL};
@@ -34,7 +34,7 @@ int getopstate() {
 }
 
 void clearnline(char *string) {
-	for (int i = 0; i < strlen(string); i++) {
+	for (int i = 0; i < (int) strlen(string); i++) {
 		if (string[i] == '\n') {
 			string[i] = '\0';
 			return;
@@ -119,16 +119,16 @@ int audiodevice() {
 
 void execblock() {
 	char *button;
-
+	char path[256];
+	char *env;
+	const char *args[] = {"bluetooth-menu", NULL};
+	
 	if ((button = getenv("BLOCK_BUTTON")) == NULL)
 		return;
 
 	switch (button[0] - '0') {
 		case 1:
-			char path[256];
-			char *env = getenv("HOME");
-			const char *args[] = {"bluetooth-menu", NULL};
-
+			env = getenv("HOME");
 			strcpy(path, env);
 			strcat(path, "/.local/bin/dwmblocks/bluetooth-menu");
 			forkexecv(path, (char**) args);

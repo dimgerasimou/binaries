@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include "colorscheme.h"
-#include "common.h"
+#include "../include/colorscheme.h"
+#include "../include/common.h"
 
 int getaudioprop(int *muted) {
 	FILE *ep;

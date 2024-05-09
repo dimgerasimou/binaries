@@ -4,8 +4,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "colorscheme.h"
-#include "common.h"
+#include "../include/colorscheme.h"
+#include "../include/common.h"
 
 const char *months[] = {"January",    "February", "March",    "April",
                         "May",        "June",     "July",     "August",
@@ -74,7 +74,7 @@ void get_summary(char *summary, int mon, int year) {
 	strcpy(summary, months[mon]);
 	strcat(summary, yearstring);
 
-	for (int i = 0; i < (20 - strlen(summary)) / 2; i++)
+	for (int i = 0; i < (20 - (int) strlen(summary)) / 2; i++)
 		strcat(temp_summary, " ");
 	strcat(temp_summary, summary);
 	strcpy(summary, temp_summary);

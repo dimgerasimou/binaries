@@ -6,8 +6,8 @@
 #include <sys/stat.h>
 #include <sys/utsname.h>
 
-#include "colorscheme.h"
-#include "common.h"
+#include "../include/colorscheme.h"
+#include "../include/common.h"
 
 char *updatecommand[] = {"st", "-e", "sh", "-c", "paru", NULL};
 

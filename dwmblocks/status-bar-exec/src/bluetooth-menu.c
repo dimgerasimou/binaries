@@ -84,7 +84,7 @@ void togglebt() {
 }
 
 void clearnline(char *string) {
-	for (int i = 0; i < strlen(string); i++) {
+	for (int i = 0; i < (int) strlen(string); i++) {
 		if (string[i] == '\n') {
 			string[i] = '\0';
 			return;

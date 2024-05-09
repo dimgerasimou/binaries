@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <time.h>
-#include "colorscheme.h"
+#include "../include/colorscheme.h"
 
 int main() {
 	time_t currentTime = time(NULL);

@@ -3,8 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "colorscheme.h"
-#include "common.h"
+#include "../include/colorscheme.h"
+#include "../include/common.h"
 
 const char *htoppath = "/usr/local/bin/st";
 const char *htopargs[] = {"st", "-e", "sh", "-c", "htop", NULL};

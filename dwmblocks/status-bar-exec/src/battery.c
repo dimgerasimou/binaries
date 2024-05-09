@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
-#include "colorscheme.h"
-#include "common.h"
+#include "../include/colorscheme.h"
+#include "../include/common.h"
 
 #define OPTIMUS
 
@@ -108,7 +108,7 @@ int main(void) {
         }
         fgets(status, 64, fp);
 	fclose(fp);
-	for (int i = 0; i < strlen(status); i++) {
+	for (int i = 0; i < (int) strlen(status); i++) {
 		if (status[i] == '\n')
 			status[i] = '\0';
 	}

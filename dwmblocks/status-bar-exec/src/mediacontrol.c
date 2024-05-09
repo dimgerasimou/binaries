@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "colorscheme.h"
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include "../include/colorscheme.h"
 
 #define MPRIS_PATH "/.local/state/dwm"
 
@@ -43,7 +43,7 @@ void parseclient(char *client, char *input) {
 
 	strcpy(name, clid);
 	name[0] += 'A' - 'a';
-	for (int i=0; i < strlen(name); i++) {
+	for (int i=0; i < (int) strlen(name); i++) {
 		if (name[i] == '.' || name[i] == ' ') {
 			name[i] = '\0';
 			break;
@@ -97,7 +97,7 @@ void getmenu(char **clientlist, int clientcount, char *client) {
                         read(readpipe[0], client, 256 * sizeof(char));
                         close(readpipe[0]);
         }
-	for (int i=0; i < strlen(client); i++)
+	for (int i=0; i < (int) strlen(client); i++)
 		if (client[i] == '\n')
 			client[i] = '\0';
 }

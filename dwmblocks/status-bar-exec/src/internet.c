@@ -1,4 +1,3 @@
-#include <libnotify/notification.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -7,8 +6,8 @@
 #include <sys/wait.h>
 #include <dirent.h>
 
-#include "colorscheme.h"
-#include "common.h"
+#include "../include/colorscheme.h"
+#include "../include/common.h"
 
 struct devprop {
 	char name[8];

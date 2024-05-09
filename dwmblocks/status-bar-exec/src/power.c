@@ -9,8 +9,8 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 
-#include "colorscheme.h"
-#include "common.h"
+#include "../include/colorscheme.h"
+#include "../include/common.h"
 
 int printmenu(char *menu, int menusize) {
 	int option=-1;
@@ -91,16 +91,16 @@ void emptydir(char *path) {
 }
 
 void deleteclipall() {
+	FILE *ep;
+	char path[1024];
+	char *ptr = NULL;
+
 	switch (fork()) {
 		case -1:
 			perror("Failed in forking");
 			exit(EXIT_FAILURE);
 			break;
 		case 0:
-			FILE *ep;
-			char path[1024];
-			char *ptr = NULL;
-
 			if ((ep = popen("clipctl cache-dir", "r")) == NULL){
 				perror("Failed to exec clipctl cmd");
 				exit(EXIT_FAILURE);
@@ -126,6 +126,8 @@ void executebutton() {
 	char yesnoprompt[] = "Yes\t1\nNo\t0";
 	char optimusmenu[] = "Integrated\t0\nHybrid\t1\nNvidia\t2";
 	char clipmenu[] = "Pause clipmenu for 1 minute\t0\nClear clipboard\t1";
+	const char *slockargs[] = {"slock", NULL};
+	const char *dwmblocksargs[] = {"dwmblocks", NULL};
 	int pmsz = sizeof(powermenu);
 	int ynsz = sizeof(yesnoprompt);
 	int optimussz = sizeof(optimusmenu);
@@ -147,12 +149,10 @@ void executebutton() {
 			killstr("/usr/local/bin/dwm", SIGTERM);
 			break;
 		case 3:
-			const char *slockargs[] = {"slock", NULL};
 			sleep(1);
 			forkexecv("/usr/local/bin/slock", (char**) slockargs);
 			break;
 		case 4:
-			const char *dwmblocksargs[] = {"dwmblocks", NULL};
 			killstr("dwmblocks", SIGTERM);
 			unsetenv("BLOCK_BUTTON");
 			forkexecv("/usr/local/bin/dwmblocks", (char**) dwmblocksargs);

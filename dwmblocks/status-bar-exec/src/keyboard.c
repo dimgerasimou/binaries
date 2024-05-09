@@ -3,7 +3,7 @@
 #include <string.h>
 #include <X11/XKBlib.h>
 #include <X11/extensions/XKBrules.h>
-#include "colorscheme.h"
+#include "../include/colorscheme.h"
 
 int main(void) {
 	Display *dpy;

@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <dirent.h>
 
-#include "common.h"
+#include "../include/common.h"
 
 void forkexecv(char *path, char *args[]) {
 	pid_t pID;
@@ -28,7 +28,7 @@ void format_summary(char *text, char *body, char *summary) {
 
 	summary[0] = '\0';
 
-	for (int i = 0; i < strlen(body); i++) {
+	for (int i = 0; i < (int) strlen(body); i++) {
 		if (body[i] == '\n') {
 			if (lcount > mcount)
 				mcount = lcount;
@@ -72,7 +72,7 @@ void freestruct(struct dirent **input, int n) {
 }
 
 int isnumber(char *string) {
-	for (int i = 0; i < strlen(string); i++)
+	for (int i = 0; i < (int) strlen(string); i++)
 		if (string[i] > '9' || string[i] < '0')
 			return 0;
 	return 1;
