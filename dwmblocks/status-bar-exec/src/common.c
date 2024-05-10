@@ -7,6 +7,59 @@
 
 #include "../include/common.h"
 
+const char *log_path[] = {"$HOME", "window-manager.log", NULL};
+
+void
+log_string(const char *string, const char *argv0)
+{
+	if (!string && strlen(string) < 1)
+		return;
+
+	FILE      *fp;
+	char      path[4096] = "";
+	char      temp_path[256];
+	time_t    rawtime;
+	struct tm *timeinfo;
+
+	for (int i = 0; log_path[i] != NULL; i++) {
+		if (log_path[i][0] == '$') {
+			const char *ptr = log_path[i] + 1;
+			char *env = getenv(ptr);
+
+			if (!env) {
+				fprintf(stderr, "Failed to get env variable:%s\n", log_path[i]);
+				exit(EXIT_FAILURE);
+			}
+
+			sprintf(temp_path, "%s/", env);
+			strcat(path, temp_path);
+		} else {
+			sprintf(temp_path, "%s/", log_path[i]);
+			strcat(path, temp_path);
+		}
+	}
+	
+	if (path[0] != '\0') {
+		char *ptr = strchr(path, '\0');
+		ptr--;
+		*ptr = '\0';
+	}
+
+	if (!(fp = fopen(path, "a"))) {
+		fprintf(stderr, "Failed to open in append mode, path:%s\n", path);
+		exit(EXIT_FAILURE);
+	}
+
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	fprintf(fp, "%d-%d-%d %d:%d:%d %s\n%s\n", timeinfo->tm_year+1900,
+	        timeinfo->tm_mon+1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, argv0, string);
+	
+	if (fp)
+		fclose(fp);
+}
+
 void forkexecv(char *path, char *args[]) {
 	pid_t pID;
 

@@ -3,9 +3,12 @@
 
 #include <libnotify/notification.h>
 #include <libnotify/notify.h>
+#include <glib.h>
 
 void freestruct(struct dirent **input, int n);
 int isnumber(char *string);
+
+void log_string(const char *string, const char *argv0);
 
 /*
  * Forks and executes given command.
