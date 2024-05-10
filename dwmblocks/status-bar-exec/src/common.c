@@ -9,6 +9,15 @@
 
 const char *log_path[] = {"$HOME", "window-manager.log", NULL};
 
+void
+sanitate_newline(char *string)
+{
+	char *ptr;
+
+	if ((ptr = strchr(string, '\n')))
+		*ptr = '\0';
+}
+
 char*
 get_path(char **path_array, int is_file)
 {
@@ -31,7 +40,7 @@ get_path(char **path_array, int is_file)
 		} else {
 			if (i == 0)
 				strcat(path, "/");
-			
+
 			sprintf(temp_path, "%s/", path_array[i]);
 			strcat(path, temp_path);
 		}

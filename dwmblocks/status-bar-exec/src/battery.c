@@ -95,12 +95,7 @@ main(void)
         fgets(status, 64, fp);
 	fclose(fp);
 
-	for (char *ptr = status; *status != '\0'; ptr++) {
-		if (*ptr =='\n') {
-			*ptr = '\0';
-			break;
-		}
-	}
+	sanitate_newline(status);
 		
 	executebutton(capacity, status);
 

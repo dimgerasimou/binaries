@@ -11,6 +11,8 @@ char* get_path(char **path_array, int is_file);
 
 void log_string(const char *string, const char *argv0);
 
+void sanitate_newline(char *string);
+
 /*
  * Forks and executes given command.
  */
