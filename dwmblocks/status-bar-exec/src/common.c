@@ -9,6 +9,45 @@
 
 const char *log_path[] = {"$HOME", "window-manager.log", NULL};
 
+char*
+get_path(char **path_array, int is_file)
+{
+	char path[4096] = "";
+	char temp_path[256];
+	char *ret;
+
+	for (int i = 0; path_array[i] != NULL; i++) {
+		if (path_array[i][0] == '$') {
+			const char *ptr = path_array[i] + 1;
+			char *env = getenv(ptr);
+
+			if (!env) {
+				fprintf(stderr, "Failed to get env variable:%s\n", path_array[i]);
+				exit(EXIT_FAILURE);
+			}
+
+			sprintf(temp_path, "%s/", env);
+			strcat(path, temp_path);
+		} else {
+			if (i == 0)
+				strcat(path, "/");
+			
+			sprintf(temp_path, "%s/", path_array[i]);
+			strcat(path, temp_path);
+		}
+	}
+	
+	if (is_file && path[0] != '\0') {
+		char *ptr = strchr(path, '\0');
+		ptr--;
+		*ptr = '\0';
+	}
+
+	ret = (char*) malloc((strlen(path)+1) * sizeof(char));
+	strcpy(ret, path);
+	return ret;
+}
+
 void
 log_string(const char *string, const char *argv0)
 {
@@ -16,34 +55,11 @@ log_string(const char *string, const char *argv0)
 		return;
 
 	FILE      *fp;
-	char      path[4096] = "";
-	char      temp_path[256];
 	time_t    rawtime;
 	struct tm *timeinfo;
+	char      *path;
 
-	for (int i = 0; log_path[i] != NULL; i++) {
-		if (log_path[i][0] == '$') {
-			const char *ptr = log_path[i] + 1;
-			char *env = getenv(ptr);
-
-			if (!env) {
-				fprintf(stderr, "Failed to get env variable:%s\n", log_path[i]);
-				exit(EXIT_FAILURE);
-			}
-
-			sprintf(temp_path, "%s/", env);
-			strcat(path, temp_path);
-		} else {
-			sprintf(temp_path, "%s/", log_path[i]);
-			strcat(path, temp_path);
-		}
-	}
-	
-	if (path[0] != '\0') {
-		char *ptr = strchr(path, '\0');
-		ptr--;
-		*ptr = '\0';
-	}
+	path = get_path((char**) log_path, 1);
 
 	if (!(fp = fopen(path, "a"))) {
 		fprintf(stderr, "Failed to open in append mode, path:%s\n", path);
@@ -58,6 +74,9 @@ log_string(const char *string, const char *argv0)
 	
 	if (fp)
 		fclose(fp);
+
+	if (path)
+		free(path);
 }
 
 void forkexecv(char *path, char *args[]) {

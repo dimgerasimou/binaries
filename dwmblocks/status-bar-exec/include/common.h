@@ -7,6 +7,7 @@
 
 void freestruct(struct dirent **input, int n);
 int isnumber(char *string);
+char* get_path(char **path_array, int is_file);
 
 void log_string(const char *string, const char *argv0);
 
