@@ -51,7 +51,7 @@ modenotify(int capacity, char *status)
 {
 	char body[256];
 	int mode = getmode();
-	
+
 	sprintf(body, "Battery capacity: %d%%\nBattery status: %s\nOptimus manager: ", capacity, status);
 	strcat(body, models[mode]);
 	notify("Power", body, (char*) iconls[mode], NOTIFY_URGENCY_LOW, 0);
@@ -79,10 +79,10 @@ main(void)
 		strcat(log, cappath);
 		log_string(log, "dwmblocks-battery");
 		exit(EXIT_FAILURE);
-        }
+	}
 
-       	fscanf(fp, "%d", &capacity);
-        fclose(fp);
+	fscanf(fp, "%d", &capacity);
+	fclose(fp);
 
 	if (!(fp = fopen(statuspath, "r"))) {
 		char log[512] = "Failed to open ";
@@ -90,20 +90,20 @@ main(void)
 		strcat(log, status);
 		log_string(log, "dwmblocks-battery");
 		exit(EXIT_FAILURE);
-        }
+	}
 
-        fgets(status, 64, fp);
+	fgets(status, 64, fp);
 	fclose(fp);
 
 	sanitate_newline(status);
-		
+
 	executebutton(capacity, status);
 
 	if(strcmp(status, "Charging") == 0) {
 		printf(CLR_3 BG_1"  "NRM"\n");
 		return EXIT_SUCCESS;
 	}
-	
+
 	printf(BG_1" %s\n", baticons[lround(capacity/25.0)]);
 	return 0;
 }
