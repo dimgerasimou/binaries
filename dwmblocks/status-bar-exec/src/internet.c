@@ -215,6 +215,6 @@ int main(void) {
 	char icon[32];
 	int state = geticon(icon);
 	checkexec(state);
-	printf("  "BG_1" %s\n", icon);
+	printf(" "BG_1" %s\n", icon);
 	return 0;
 }
