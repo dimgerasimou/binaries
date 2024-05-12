@@ -104,6 +104,6 @@ main(void)
 		return EXIT_SUCCESS;
 	}
 
-	printf(BG_1" %s\n", baticons[lround(capacity/25.0)]);
+	printf(BG_1"%s\n", baticons[lround(capacity/25.0)]);
 	return 0;
 }

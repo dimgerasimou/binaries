@@ -9,7 +9,7 @@ const char *tui_path[]  = { "usr", "local", "bin", "st", NULL};
 const char *tui_args[]  = {"st", "-e", "bluetuith", NULL};
 const char *menu_path[] = {"$HOME", ".local", "bin", "dwmblocks", "bluetooth-menu"};
 const char *menu_args[] = {"bluetooth-menu", NULL};
-const char *icon_ls[]   = {" 󰂲 ", " 󰂯 ", " 󰥰 "};
+const char *icon_ls[]   = {"󰂲", "󰂯", "󰥰"};
 const char *bt_show     = "bluetoothctl show";
 const char *bt_info     = "bluetoothctl info";
 const char *bt_con      = "bluetoothctl devices Connected";
@@ -147,7 +147,7 @@ main(void)
 	if (icon_arg)
 		icon_arg += has_audio();
 
-	printf(CLR_4 BG_1"%s" NRM "\n", icon_ls[icon_arg]);
+	printf(CLR_4 BG_1" %s " NRM "\n", icon_ls[icon_arg]);
 
 	return EXIT_SUCCESS;
 }

@@ -72,7 +72,7 @@ int geticon(char *icon) {
 	if (!state) 
 		strcpy(icon, CLR_9" "NRM);
 	else if (state == 2)
-		strcpy(icon, CLR_6"󰤨 "NRM);
+		strcpy(icon, CLR_6"󰤨  "NRM);
 	else if (state == 1 || state == 3)
 		strcpy(icon, CLR_6"󰈁 "NRM);
 	else
