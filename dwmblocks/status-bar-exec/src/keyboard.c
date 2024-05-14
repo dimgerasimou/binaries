@@ -4,35 +4,53 @@
 #include <X11/XKBlib.h>
 #include <X11/extensions/XKBrules.h>
 #include "../include/colorscheme.h"
+#include "../include/common.h"
 
-int main(void) {
-	Display *dpy;
+void
+XkbRF_FreeVarDefs(XkbRF_VarDefsRec *var_defs)
+{
+	if (!var_defs)
+		return;
 
-	if ((dpy = XOpenDisplay(NULL)) == NULL) {
-		perror("Cannot open display");
+	free(var_defs->model);
+	free(var_defs->layout);
+	free(var_defs->variant);
+	free(var_defs->options);
+	free(var_defs->extra_names);
+	free(var_defs->extra_values);
+}
+
+
+int
+main(void)
+{
+	Display          *dpy;
+	XkbStateRec      state;
+	XkbRF_VarDefsRec vd;
+	char             *tok;
+
+	if (!(dpy = XOpenDisplay(NULL))) {
+		log_string("Cannot open X11 display", "dwmblocks-keyboard");
 		return EXIT_FAILURE;
 	}
 
-	XkbStateRec state;
 	XkbGetState(dpy, XkbUseCoreKbd, &state);
-
-	XkbRF_VarDefsRec vd;
 	XkbRF_GetNamesProp(dpy, NULL, &vd);
 	
-	char *tok = strtok(vd.layout, ",");
+	tok = strtok(vd.layout, ",");
 
 	for (int i = 0; i < state.group; i++) {
 		tok = strtok(NULL, ",");
-		if (tok == NULL) {
+		if (!tok) {
+			log_string("Cannot get vd.layout", "dwmblocks-keyboard");
 			return EXIT_FAILURE;
 		}
 	}
+
 	printf(CLR_5"   %s"NRM"\n", tok);
-	
-	if (vd.model != NULL) free(vd.model);
-	if (vd.layout != NULL) free(vd.layout);
-	if (vd.variant != NULL) free(vd.variant);
-	if (vd.options != NULL) free(vd.options);
+
+	XkbRF_FreeVarDefs(&vd);
 	XCloseDisplay(dpy);
+
 	return 0;
 }
