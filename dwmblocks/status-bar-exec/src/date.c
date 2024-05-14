@@ -14,7 +14,9 @@ const char *months[] = {"January",    "February", "March",    "April",
 const int daysinmonth[] = {31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const char *firefoxcmd[] = {"firefox", "--new-window", "https://calendar.google.com", NULL};
 
-int firstdayinmonth(int mday, int wday) {
+int
+firstdayinmonth(int mday, int wday)
+{
 	while (mday > 7)
 		mday -= 7;
 
@@ -28,18 +30,24 @@ int firstdayinmonth(int mday, int wday) {
 	wday--;
 	if (wday == -1)
 		wday = 6;
+
 	return wday;
 }
 
-int calculatemonthdays(int month, int year) {
+int
+calculatemonthdays(int month, int year)
+{
 	if (month != 1)
 		return daysinmonth[month];
 	if ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0)
 		return 29;
+
 	return 28;
 }
 
-void getcalendar(char *calendar, int mday, int wday, int month, int year) {
+void
+getcalendar(char *calendar, int mday, int wday, int month, int year)
+{
 	int firstday = firstdayinmonth(mday, wday);
 	int monthdays = calculatemonthdays(month, year);
 	char day[64];
@@ -60,6 +68,7 @@ void getcalendar(char *calendar, int mday, int wday, int month, int year) {
 			firstday = 0;
 			strcat(calendar, "\n");
 		}
+
 		strcat(calendar, day);
 		firstday++;
 	}
@@ -76,6 +85,7 @@ void get_summary(char *summary, int mon, int year) {
 
 	for (int i = 0; i < (20 - (int) strlen(summary)) / 2; i++)
 		strcat(temp_summary, " ");
+
 	strcat(temp_summary, summary);
 	strcpy(summary, temp_summary);
 }
@@ -111,13 +121,12 @@ void executebutton(int mday, int wday, int mon, int year) {
 }
 
 int main() {
-	time_t currentTime = time(NULL);
-	struct tm *localTime = localtime(&currentTime);
+	time_t    currentTime = time(NULL);
+	struct tm *localTime  = localtime(&currentTime);
 
 	executebutton(localTime->tm_mday, localTime->tm_wday, localTime->tm_mon,
 	              localTime->tm_year + 1900);
 
-	printf(CLR_1 "   %02d/%02d" NRM "\n", localTime->tm_mday,
-	                                       ++localTime->tm_mon);
+	printf(CLR_1 "   %02d/%02d" NRM "\n", localTime->tm_mday, ++localTime->tm_mon);
 	return 0;
 }
