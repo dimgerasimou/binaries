@@ -53,7 +53,7 @@ long calculateused() {
 void executebutton() {
 	char *env = getenv("BLOCK_BUTTON");
 	if (env != NULL && env[0] == '2') 
-		forkexecv((char*) htoppath, (char**)htopargs);
+		forkexecv((char*) htoppath, (char**)htopargs, "dwmblocks-memory");
 }
 
 int main(void) {

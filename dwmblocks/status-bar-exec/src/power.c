@@ -146,16 +146,16 @@ void executebutton() {
 				execl("/bin/shutdown", "shutdown", "now", "-r", NULL);
 			break;
 		case 2:
-			killstr("/usr/local/bin/dwm", SIGTERM);
+			killstr("/usr/local/bin/dwm", SIGTERM, "dwmblocks-power");
 			break;
 		case 3:
 			sleep(1);
-			forkexecv("/usr/local/bin/slock", (char**) slockargs);
+			forkexecv("/usr/local/bin/slock", (char**) slockargs, "dwmblocks-power");
 			break;
 		case 4:
-			killstr("dwmblocks", SIGTERM);
+			killstr("dwmblocks", SIGTERM, "dwmblocks-power");
 			unsetenv("BLOCK_BUTTON");
-			forkexecv("/usr/local/bin/dwmblocks", (char**) dwmblocksargs);
+			forkexecv("/usr/local/bin/dwmblocks", (char**) dwmblocksargs, "dwmblocks-power");
 			break;
 		case 5:
 			switch (printmenu(optimusmenu, optimussz)) {

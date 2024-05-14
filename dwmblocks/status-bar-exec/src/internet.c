@@ -184,7 +184,7 @@ void execdmenu() {
 		case 0:
 			strcpy(env, getenv("HOME"));
 			strcat(env, dmenuscriptpath);
-			forkexecv(env, (char**) dmenuargs);
+			forkexecv(env, (char**) dmenuargs, "dwmblocks-internet");
 			exit(EXIT_SUCCESS);
 		default:
 			break;
@@ -201,7 +201,7 @@ void checkexec(int state) {
 		case 1:	netproperties(state);
 			break;
 
-		case 2: forkexecv((char*) nmtuipath, (char**) nmtuiargs);
+		case 2: forkexecv((char*) nmtuipath, (char**) nmtuiargs, "dwmblocks-internet");
 			break;
 
 		case 3: execdmenu();

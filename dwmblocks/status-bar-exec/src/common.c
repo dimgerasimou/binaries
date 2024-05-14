@@ -79,7 +79,7 @@ log_string(const char *string, const char *argv0)
 	timeinfo = localtime(&rawtime);
 
 	fprintf(fp, "%d-%d-%d %d:%d:%d %s\n%s\n", timeinfo->tm_year+1900,
-	        timeinfo->tm_mon+1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, argv0, string);
+		timeinfo->tm_mon+1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, argv0, string);
 	
 	if (fp)
 		fclose(fp);
@@ -88,17 +88,21 @@ log_string(const char *string, const char *argv0)
 		free(path);
 }
 
-void forkexecv(char *path, char *args[]) {
+void forkexecv(char *path, char *args[], const char *argv0) {
 	pid_t pID;
 
 	pID = fork();
 	if (pID < 0) {
-		perror("Fork failed");
+		log_string("fork() failed", argv0);
 		exit(EXIT_FAILURE);
 	} else if (pID == 0) {
 		setsid();
 		execv(path, args);
-		perror("Fork execv failed");
+
+		char string[512];
+		strcpy(string, "forkexecv() failed for:");
+		strcat(string, args[0]);
+		log_string(string, argv0);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -159,7 +163,7 @@ int isnumber(char *string) {
 	return 1;
 }
 
-void killstr(char *procname, int signo) {
+void killstr(char *procname, int signo, const char *argv0) {
 	FILE *fp;
 	struct dirent **pidlist;
 	int funcret;
@@ -169,8 +173,8 @@ void killstr(char *procname, int signo) {
 	pid_t pID = -1;
 
 	if ((funcret  = scandir("/proc", &pidlist, NULL, alphasort)) == -1) {
-		perror("Failed to scan /proc directoy");
-        	freestruct(pidlist, funcret);
+		log_string("Failed to scan /proc directoy", argv0);
+		freestruct(pidlist, funcret);
 		exit(EXIT_FAILURE);
 	}
 

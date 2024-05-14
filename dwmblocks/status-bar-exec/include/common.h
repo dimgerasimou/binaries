@@ -16,7 +16,7 @@ void sanitate_newline(char *string);
 /*
  * Forks and executes given command.
  */
-void forkexecv(char *path, char *args[]);
+void forkexecv(char *path, char *args[], const char *argv0);
 
 /*
  * Centers the summary, according to the size of lines in the body, using spaces.
@@ -32,6 +32,6 @@ int notify(char *summary, char *body, char *icon, NotifyUrgency urgency, int no_
 /*
  * Sends the given signal to the proccess with the given name.
  */
-void killstr(char *procname, int signo);
+void killstr(char *procname, int signo, const char *argv0);
 
 #endif /* COMMON_H */

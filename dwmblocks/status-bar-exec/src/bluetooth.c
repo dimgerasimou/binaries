@@ -120,12 +120,12 @@ execute_block()
 	switch (button[0] - '0') {
 		case 1:
 			path = get_path((char**) menu_path, 1);
-			forkexecv(path, (char**) menu_args);
+			forkexecv(path, (char**) menu_args, "dwmblocks-bluetooth");
 			break;
 
 		case 2:
 			path = get_path((char**) tui_path, 1);
-			forkexecv(path, (char**) tui_args);
+			forkexecv(path, (char**) tui_args, "dwmblocks-bluetooth");
 			break;
 
 		default:

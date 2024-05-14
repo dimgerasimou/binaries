@@ -102,7 +102,7 @@ void executebutton(int mday, int wday, int mon, int year) {
 			return;
 
 		case 3:
-			forkexecv("/usr/bin/firefox", (char **) firefoxcmd);
+			forkexecv("/usr/bin/firefox", (char **) firefoxcmd, "dwmblocks-date");
 			return;
 
 		default:

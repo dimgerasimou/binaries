@@ -68,10 +68,10 @@ void executebutton(int volume, int muted) {
 			notifyproperties(volume, muted); 
                         break;
                 case 2: 
-			forkexecv("/usr/local/bin/st", (char**) pmixerargs);
+			forkexecv("/usr/local/bin/st", (char**) pmixerargs, "dwmblocks-volume");
                         break;
                 case 3: 
-			forkexecv("/usr/bin/easyeffects", (char**) easyeffectsargs);
+			forkexecv("/usr/bin/easyeffects", (char**) easyeffectsargs, "dwmblocks-volume");
                         break;
                 default:
 			break;
