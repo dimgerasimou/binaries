@@ -11,7 +11,7 @@ const char *months[] = {"January",    "February", "March",    "April",
                         "May",        "June",     "July",     "August",
                         "Semptember", "October",  "November", "December"};
 
-const int daysinmonth[] = {31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+const int  daysinmonth[] = {31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const char *firefoxcmd[] = {"firefox", "--new-window", "https://calendar.google.com", NULL};
 
 int
@@ -74,7 +74,9 @@ getcalendar(char *calendar, int mday, int wday, int month, int year)
 	}
 }
 
-void get_summary(char *summary, int mon, int year) {
+void
+get_summary(char *summary, int mon, int year)
+{
 	char yearstring[16];
 	char temp_summary[64];
 
@@ -90,7 +92,9 @@ void get_summary(char *summary, int mon, int year) {
 	strcpy(summary, temp_summary);
 }
 
-void execcalendar(int mday, int wday, int mon, int year) {
+void
+execcalendar(int mday, int wday, int mon, int year)
+{
 	char body[512];
 	char summary[64];
 
@@ -100,7 +104,9 @@ void execcalendar(int mday, int wday, int mon, int year) {
 }
 
 
-void executebutton(int mday, int wday, int mon, int year) {
+void
+executebutton(int mday, int wday, int mon, int year)
+{
 	char *env;
 
 	if ((env = getenv("BLOCK_BUTTON")) == NULL)
@@ -120,7 +126,9 @@ void executebutton(int mday, int wday, int mon, int year) {
 	}
 }
 
-int main() {
+int
+main()
+{
 	time_t    currentTime = time(NULL);
 	struct tm *localTime  = localtime(&currentTime);
 
