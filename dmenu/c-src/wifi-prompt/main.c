@@ -210,7 +210,7 @@ remove_active_connection_cb(GObject *remote_connection, GAsyncResult *result, gp
 	if (error) {
 		if (!nm->error)
 			nm->error = g_string_new("");
-		g_string_append_printf(nm->error, "Error deleating the connection: %s\n", error->message);
+		g_string_append_printf(nm->error, "Error deleting the connection: %s\n", error->message);
 		g_error_free(error);
 		nm->terminate = TRUE;
 	}
@@ -370,11 +370,8 @@ get_access_point(NMDetails *nm)
 	aps = nm_device_wifi_get_access_points(NM_DEVICE_WIFI(nm->device));
 
 	if (!aps->len) {
-		if (!nm->error)
-			nm->error = g_string_new("");
 		if (!nm->message)
 			nm->message = g_string_new("");
-		g_string_append(nm->error, "No access points have been detected\n");
 		g_string_append(nm->message, "No access points have been detected\n");
 		nm->terminate = TRUE;
 		return;
@@ -386,9 +383,6 @@ get_access_point(NMDetails *nm)
 	if (return_index != -1) {
 		nm->ap = g_ptr_array_index(aps, return_index);
 	} else {
-		if (!nm->error)
-			nm->error = g_string_new("");
-		g_string_append(nm->error, "No access point selected\n");
 		nm->terminate = TRUE;
 	}
 
