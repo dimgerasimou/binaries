@@ -1,220 +1,272 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <dirent.h>
+#include <string.h>
+#include <NetworkManager.h>
+#include "nm-dbus-interface.h"
 
 #include "../include/colorscheme.h"
 #include "../include/common.h"
 
-struct devprop {
-	char name[8];
-	char type[16];
-	char hwaddress[18];
-	char state[32];
-	char connection[33];
-	char ip4address[16];
-	char ip4gateway[16];
-	char ip6address[32];
+/* constants and paths */
+const char *iconarray[] = {"x", "tdenetworkmanager", "wifi-radar"};
+const char *staticarr[] = {CLR_9"󰤮  "NRM, CLR_6"  "NRM, CLR_6"󰤯  "NRM, CLR_6"󰤟  "NRM, CLR_6"󰤢  "NRM, CLR_6"󰤥  "NRM, CLR_6"󰤨  "NRM, CLR_9"󰤫  "NRM};
+const char *nmtuipath[] = {"usr", "local", "bin", "st", NULL};
+const char *nmtuiargs[] = {"st", "-e", "nmtui", NULL};
+const char *wifipath[]  = {"$HOME", ".local", "bin", "dmenu", "dmenu-wifi-prompt", NULL};
+const char *wifiargs[]  = {"dmenu-wifi-prompt", NULL};
+
+/* structs */
+struct ip {
+	NMIPConfig *cfg;
+	GPtrArray  *arr;
+	const char *add;
+	const char *gat;
 };
 
-const char *iconarray[] = {"x", "tdenetworkmanager", "wifi-radar", "tdenetworkmanager"};
-const char *nmtuipath = "/usr/local/bin/st";
-const char *nmtuiargs[] = {"st", "-e", "nmtui", NULL};
-const char dmenuscriptpath[] = "/.local/bin/dmenu/dmenu-wifi-prompt";
-const char *dmenuargs[] = {"dmenu-wifiprompt", NULL};
+/* function definitions */
+void append_common_info(NMDevice *device, GString *string);
+void append_ethernet_info(NMDevice *device, GString *string);
+void append_wifi_info(NMDevice *device, GString *string);
+void checkexec(NMClient *client, int iconindex);
+int  get_active_state(NMClient *client);
+void get_devices_info(NMClient *client, const int index);
+void init_nm_client(NMClient **client);
 
-void getnames(char *edev, char *wdev) {
-	DIR *dp;
-	struct dirent *ep;
+void
+append_common_info(NMDevice *device, GString *string)
+{
+	NMActiveConnection *ac;
+	struct ip          ip4, ip6;
+	const char         *mac;
 
-	if ((dp = opendir("/sys/class/net/")) == NULL) {
-		perror("Failed to list /sys/class/net/ directory");
-		exit(EXIT_FAILURE);
-	}
-	
-	while ((ep = readdir (dp)) != NULL) {
-		if (strchr(ep->d_name, 'e') != NULL) 	
-			strncpy(edev, ep->d_name, 8);
-		if (strchr(ep->d_name, 'w') != NULL) 
-			strncpy(wdev, ep->d_name, 8);
-        }
-	(void) closedir (dp);
-}
+	ac = nm_device_get_active_connection(device);
 
-int geticon(char *icon) {
-	FILE *ep;
-	char edev[32];
-	char wdev[32];
-	char buffer[128];
-	int state = 0;
-	
-	getnames(edev, wdev);
-	if ((ep = popen("nmcli device", "r")) == NULL)
-		return 0;
-	while (fgets(buffer, 128, ep) != NULL) {
-		if (strstr(buffer, edev) != NULL) {
-			if(strstr(buffer, "connected") != NULL) {
-				if (strstr(buffer, "disconnected") == NULL)
-					state += 1;
-			}
-		}
-		if (strstr(buffer, wdev) != NULL) {
-			if(strstr(buffer, "connected") != NULL) {
-				if (strstr(buffer, "disconnected") == NULL)
-					state += 2;
-			}
-		}
-
-	}
-	if (!state) 
-		strcpy(icon, CLR_9" "NRM);
-	else if (state == 2)
-		strcpy(icon, CLR_6"󰤨  "NRM);
-	else if (state == 1 || state == 3)
-		strcpy(icon, CLR_6"󰈁 "NRM);
-	else
-	 	strcpy(icon, "NULL");
-	return state;
-}
-
-void getdeviceattributes(char *name, struct devprop *deviceprop) {
-	FILE *ep;
-	char buffer[256];
-	char *string;
-	char *ptr;
-
-	if ((ep = popen("nmcli device show", "r")) == NULL)
+	if (!ac)
 		return;
 
-	while (fgets(buffer, 256, ep) != NULL) {
-		if (strstr(buffer, name) != 0) {
-			strncpy(deviceprop->name, name, 8);
-			while (fgets(buffer, 256, ep) != NULL) {
-				if (strstr(buffer, "TYPE") != 0) {
-					string = buffer + 40;
-					if ((ptr = strchr(string, '\n')) != NULL)
-						ptr[0] = '\0';
-					string[0] = string[0] - 'a' + 'A';
-					strncpy(deviceprop->type, string, 16);
-				}else if (strstr(buffer, "HWADDR") != 0) {
-					string = buffer + 40;
-					string[17] = '\0';
-					if ((ptr = strchr(string, '\n')) != NULL)
-						ptr[0] = '\0';
-					strncpy(deviceprop->hwaddress, string, 18);
-				} else if (strstr(buffer, "STATE") != 0) {
-					string = buffer + 40;
-					if ((ptr = strchr(string, ' ')) != NULL || (ptr = strchr(string, '\n')) != NULL)
-						ptr[0] = '\0';
-					strncpy(deviceprop->state, string, 4);
-				} else if (strstr(buffer, "CONNECTION") != 0) {
-					string = buffer + 40;
-					if ((ptr = strchr(string, '\n')) != NULL)
-						ptr[0] = '\0';
-					strncpy(deviceprop->connection, string, 33);
-				} else if (strstr(buffer, "IP4.ADDRESS") != 0) {
-					string = buffer + 40;
-					if ((ptr = strchr(string, '/')) != NULL || (ptr = strchr(string, '\n')) != NULL) 
-						ptr[0] = '\0';
-					strncpy(deviceprop->ip4address, string, 16);
-				} else if (strstr(buffer, "IP4.GATEWAY") != 0) {
-					string = buffer + 40;
-					if ((ptr = strchr(string, '/')) != NULL || (ptr = strchr(string, '\n')) != NULL)
-						ptr[0] = '\0';
-					strncpy(deviceprop->ip4gateway, string, 16);
-				} else if (strstr(buffer, "IP6.ADDRESS") != 0) {
-					string = buffer + 40;
-					if ((ptr = strchr(string, '/')) != NULL || (ptr = strchr(string, '\n')) != NULL)
-						ptr[0] = '\0';
-					strncpy(deviceprop->ip6address, string, 32);
-				} else if (strstr(buffer, "IP6.GATEWAY") != 0) {
-					return;
-				}
-			}
-		}
-	}
+	mac = nm_device_get_hw_address(device);
+
+	ip4.cfg = nm_active_connection_get_ip4_config(ac);
+	ip4.arr = nm_ip_config_get_addresses(ip4.cfg);
+	ip4.add = nm_ip_address_get_address(g_ptr_array_index(ip4.arr, 0));
+	ip4.gat = nm_ip_config_get_gateway(ip4.cfg);
+
+	ip6.cfg = nm_active_connection_get_ip6_config(ac);
+	ip6.arr = nm_ip_config_get_addresses(ip6.cfg);
+	ip6.add = nm_ip_address_get_address(g_ptr_array_index(ip6.arr, 0));
+
+	g_string_append_printf(string, "MAC:  %s\nIPv4: %s\nGate: %s\nIPv6: %s\n\n",
+	                       mac, ip4.add, ip4.gat, ip6.add);
 }
 
-void netproperties(int state) {
-	struct devprop deviceprop;
-	char edev[8];
-	char wdev[8];
-	char output[512];
-	char tempoutput[256];
+void
+append_ethernet_info(NMDevice *device, GString *string)
+{
+	NMActiveConnection *ac;
 
-	getnames(edev, wdev);
-	switch (state) {
-		case 0:
-			strcpy(output, "Network Disconnected");
-			break;
-		case 1:
-			getdeviceattributes(edev, &deviceprop);
-			sprintf(output, "%s\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
-			        deviceprop.type, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
-			break;
-		case 2:
-			getdeviceattributes(wdev, &deviceprop);
-			sprintf(output, "%s\nSSID: %s - %s%%\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
-			        deviceprop.type, deviceprop.connection, deviceprop.state, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
-			break;
-		case 3:
-			getdeviceattributes(edev, &deviceprop);
-			sprintf(output, "%s\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
-			        deviceprop.type, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
-			getdeviceattributes(wdev, &deviceprop);
-			sprintf(tempoutput, "\n%s\nSSID: %s - %s%%\nIPv4 Address: %s\nIPv6 Address: %s\nIPv4 Gateway: %s\n",
-			        deviceprop.type, deviceprop.connection, deviceprop.state, deviceprop.ip4address, deviceprop.ip6address, deviceprop.ip4gateway);
-			strcat(output,tempoutput);
-			break;
-		default:
-			break;
-	}
-	notify("Netowrk Manager", output, (char *) iconarray[state], NOTIFY_URGENCY_LOW, 0);
+	ac = nm_device_get_active_connection(device);
+
+	if (!ac)
+		g_string_append(string, "Ethernet: Disconnected\n\n");
+	else
+		g_string_append(string, "Ethernet\n");
 }
 
-void execdmenu() {
-	char env[512];
-	switch(fork()) {
-		case -1:
-			perror("Failed in forking");
-			exit(EXIT_FAILURE);
-		case 0:
-			strcpy(env, getenv("HOME"));
-			strcat(env, dmenuscriptpath);
-			forkexecv(env, (char**) dmenuargs, "dwmblocks-internet");
-			exit(EXIT_SUCCESS);
-		default:
-			break;
+void
+append_wifi_info(NMDevice *device, GString *string)
+{
+	GBytes             *ssid;
+	GString            *ssid_str;
+	guint32            freq;
+	guint8             strength;
+	NMActiveConnection *ac;
+	NMAccessPoint      *ap;
+
+	ac = nm_device_get_active_connection(device);
+
+	if (!ac) {
+		g_string_append(string, "Wifi: Disconnected\n\n");
+		return;
 	}
+
+	ap       = nm_device_wifi_get_active_access_point(NM_DEVICE_WIFI(device));
+	ssid     = nm_access_point_get_ssid(ap);
+	freq     = nm_access_point_get_frequency(ap);
+	strength = nm_access_point_get_strength(ap);
+
+	if (ssid)
+		ssid_str = g_string_new(nm_utils_ssid_to_utf8(g_bytes_get_data(ssid, NULL),
+		                        g_bytes_get_size(ssid)));
+	else
+		ssid_str = g_string_new("*hidden_network*");
+
+	g_string_append_printf(string, "Wifi\nSSID: %s\nStrn: %d%% | Freq: %d GHz\n",
+	                       ssid_str->str, strength, freq);
+
+	g_string_free(ssid_str, TRUE);
 }
 
-void checkexec(int state) {
+void
+checkexec(NMClient *client, int iconindex)
+{
 	char *env;
+	char *path;
 
-	if ((env = getenv("BLOCK_BUTTON"))== NULL)
+	if (!(env = getenv("BLOCK_BUTTON")))
 		return;
 
 	switch (env[0] - '0') {
-		case 1:	netproperties(state);
+		case 1:
+			get_devices_info(client, iconindex);
 			break;
 
-		case 2: forkexecv((char*) nmtuipath, (char**) nmtuiargs, "dwmblocks-internet");
+		case 2:
+			path = get_path((char**) nmtuipath, 1);
+			forkexecv(path, (char**) nmtuiargs, "dwmblocks-internet");
+			free(path);
 			break;
 
-		case 3: execdmenu();
+		case 3:
+			path = get_path((char**) wifipath, 1);
+			forkexecv(path, (char**) wifiargs, "dwmblocks-internet");
+			free(path);
 			break;
+
 		default:
 			break;
 	}
 }
 
-int main(void) {
-	char icon[32];
-	int state = geticon(icon);
-	checkexec(state);
-	printf(" "BG_1" %s\n", icon);
+int
+get_active_state(NMClient *client)
+{
+	NMActiveConnection *ac;
+	NMAccessPoint      *ap;
+	NMDeviceWifi       *device;
+	const GPtrArray    *act_devices;
+	const char         *type;
+	int                state;
+
+	ac = nm_client_get_primary_connection(client);
+	
+	if (!ac)
+		return 0;
+	
+	type = nm_active_connection_get_connection_type(ac);
+
+	if (strcmp(type, "802-3-ethernet") == 0)
+		return 1;
+
+	if (strcmp(type, "802-11-wireless") == 0) {
+		act_devices = nm_active_connection_get_devices(ac);
+
+		if (!act_devices || act_devices->len < 1) {
+			log_string("Wifi active devices less than 1", "dwmblocks-internet");
+			return 7;
+		}
+
+		device = NM_DEVICE_WIFI(g_ptr_array_index(act_devices, 0));
+
+		if (!device) {
+			log_string("Could not fetch wifi device", "dwmblocks-internet");
+			return 7;
+		}
+
+		ap = nm_device_wifi_get_active_access_point(device);
+
+		if (!ap) {
+			log_string("Could not fetch active access point", "dwmblocks-internet");
+			return 7;
+		}
+
+		state = (nm_access_point_get_strength(ap) / 20);
+		state = state > 4 ? 4 : state;
+
+		return (2 + state);
+	}
+
+	return 0;
+}
+
+void
+get_devices_info(NMClient *client, const int index)
+{
+	const GPtrArray *devices;
+	NMDevice        *device;
+	GString         *string;
+	int             iconindex;
+
+	devices   = nm_client_get_devices(client);
+	iconindex = index > 2 ? 2 : index;
+
+	if (!devices) {
+		notify("Network Devices Info", "No network devices detected", (char*) iconarray[0], NOTIFY_URGENCY_NORMAL, 0);
+		return;
+	}
+
+	string = g_string_new("");
+
+	for (int i = 0; i < (int) devices->len; i++) {
+		device = g_ptr_array_index(devices, i);
+
+		if (!device) {
+			log_string("Failed to get device", "dwmblocks-internet");
+			return;
+		}
+
+		int type = nm_device_get_device_type(device);
+		switch (type) {
+			case NM_DEVICE_TYPE_ETHERNET:
+				append_ethernet_info(device, string);
+				goto INFO;
+
+			case NM_DEVICE_TYPE_WIFI:
+				append_wifi_info(device, string);
+			INFO:
+				append_common_info(device, string);
+
+			default:
+				break;
+		}
+	}
+
+	if (string->len <= 1)
+		notify("Network Devices Info", "No network devices detected", (char*) iconarray[iconindex], NOTIFY_URGENCY_NORMAL, 0);
+	else
+		notify("Network Devices Info", string->str, (char*) iconarray[iconindex], NOTIFY_URGENCY_NORMAL, 0);
+
+	g_string_free(string, TRUE);
+}
+
+void
+init_nm_client(NMClient **client)
+{
+	GError *error = NULL;
+	*client       = nm_client_new(NULL, &error);
+
+	if (error) {
+		char log[256];
+		sprintf(log, "Error initializing NetworkManager client: %s", error->message);
+		log_string(log, "dwmblocks-internet");
+	}
+}
+
+int
+main(void)
+{
+	NMClient *client;
+	int      state;
+
+	state = 0;
+	init_nm_client(&client);
+
+	if (client) {
+		state = get_active_state(client);
+		checkexec(client, state);
+		g_object_unref(client);
+	}
+
+	printf(" "BG_1" %s\n", staticarr[state]);
+
 	return 0;
 }
