@@ -1,199 +1,267 @@
-#include <libnotify/notification.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
 #include <signal.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
 
 #include "../include/colorscheme.h"
 #include "../include/common.h"
 
-int printmenu(char *menu, int menusize) {
-	int option=-1;
-	int writepipe[2], readpipe[2];
-	char buffer[64] = "";
+/* paths */
+const char *slockpath[] = {"usr", "local", "bin", "slock", NULL};
+const char *dwmblpath[] = {"usr", "local", "bin", "dwmblocks", NULL};
+const char *optimpath[] = {"bin", "optimus-manager", NULL};
 
-	if (pipe(writepipe) < 0 || pipe(readpipe) < 0) {
-		perror("Failed to initialize pipes");
-		exit(EXIT_FAILURE);
-	}
-	
+/* args */
+const char *clipcache    = "clipctl cache-dir";
+const char *slockargs[]  = {"slock", NULL};
+const char *dwmblsargs[] = {"dwmblocks", NULL};
+const char *optintargs[] = {"optimus-manager", "--no-confirm", "--switch", "integrated", NULL};
+const char *opthybargs[] = {"optimus-manager", "--no-confirm", "--switch", "hybrid", NULL};
+const char *optnviargs[] = {"optimus-manager", "--no-confirm", "--switch", "nvidia", NULL};
+
+/* menu prompts */
+const char *powermenu   = " Shutdown\t0\n Reboot\t1\n\n󰗽 Logout\t2\n Lock\t3\n\n Restart DwmBlocks\t4\n󰘚 Optimus Manager\t5\n󰅌 Clipmenu\t6";
+const char *optimusmenu = "Integrated\t0\nHybrid\t1\nNvidia\t2";
+const char *clipmenu    = "Pause clipmenu for 1 minute\t0\nClear clipboard\t1";
+const char *yesnomenu   = "Are you sure?\t-1\nYes\t1\nNo\t0";
+
+/* function definitons */
+static void clipboard_delete(void);
+static void clipboard_handle(void);
+static void clipboard_pause(const unsigned int seconds);
+static void directory_delete_files(const char *path);
+static void dwmblocks_restart(void);
+static void executebutton(void);
+static void lock_screen(void);
+static void optimus_handle(void);
+
+static void
+clipboard_delete(void)
+{
+	FILE *ep;
+	FILE *fp;
+
+	char path[PATH_MAX - 256];
+
 	switch (fork()) {
-		case -1:
-			perror("Failed in forking");
-			exit(EXIT_FAILURE);
+	case -1:
+		log_string("fork() failed", "dwmblocks-power");
+		exit(errno);
 
-		case 0: /* child - xmenu */
-			close(writepipe[1]);
-			close(readpipe[0]);
-			dup2(writepipe[0], STDIN_FILENO);
-			close(writepipe[0]);
-			dup2(readpipe[1], STDOUT_FILENO);
-			close(readpipe[1]);
-			
-			execl("/usr/bin/xmenu", "xmenu", NULL);
-			exit(EXIT_SUCCESS);
+	case 0:
+		if (!(ep = popen(clipcache, "r"))){
+			char log[256];
 
-		default: /* parent */
-			close(writepipe[0]);
-			close(readpipe[1]);
-			write(writepipe[1], menu, menusize);
-			close(writepipe[1]);
-			wait(NULL);
-			read(readpipe[0], buffer, sizeof(buffer));
-			close(readpipe[0]);
+			sprintf(log, "Failed to exec: %s, %s\n", clipcache, strerror(errno));
+			log_string(log, "dwmblocks-internet");
+			exit(errno);
+		}
+
+		fgets(path, sizeof(path), ep);
+		pclose(ep);
+
+		sanitate_newline(path);
+
+		directory_delete_files(path);
+
+		strcat(path, "/status");
+		fp = fopen(path, "w");
+
+		fprintf(fp, "enabled\n");
+		
+		fclose(fp);
+		exit(EXIT_SUCCESS);
+
+	default:
+		break;
 	}
-	if (buffer[0] != '\0')
-		sscanf(buffer, "%d", &option);
-	return option;
 }
 
-void clippause() {
-	switch (fork()) {
-		case -1:
-			perror("Failed in forking");
-			exit(EXIT_FAILURE);
-		case 0:
-			setsid();
-			system("clipctl disable");
-			notify("Clipboard", "clipmenu is now disabled.", "com.github.davidmhewitt.clipped", NOTIFY_URGENCY_NORMAL, 0);
-			sleep(60);
-			system("clipctl enable");
-			notify("Clipboard", "clipmenu is now enabled.", "com.github.davidmhewitt.clipped", NOTIFY_URGENCY_NORMAL, 0);
-			exit(EXIT_SUCCESS);
-		default:
-			break;
+static void
+clipboard_handle(void)
+{
+	switch (get_xmenu_option(clipmenu, "dwmblocks-power")) {
+	case 0:
+		clipboard_pause(60);
+		break;
+
+	case 1:
+		clipboard_delete();
+		break;
+
+	default:
+		break;
 	}
 }
 
-void emptydir(char *path) {
-	struct dirent **dir;
-	int ret = scandir(path, &dir, NULL, NULL);
-	char filepath[256];
+static void
+clipboard_pause(const unsigned int seconds)
+{
+	switch (fork()) {
+	case -1:
+		log_string("fork() failed", "dwmblocks-internet");
+		exit(ECHILD);
 
-	if (ret == -1) {
-		perror("Failed to scan the clipmenu directory");
-		freestruct(dir, ret);
-		exit(EXIT_FAILURE);
+	case 0:
+		setsid();
+		pid_t pid = get_pid_of("clipmenud", "dmblocks-power");
+
+		if (pid < 0) {
+			pid = get_pid_of("bash\0/usr/bin/clipmenud", "dmblocks-power");
+			if (pid < 0)
+				exit(ESRCH);
+		}
+
+		kill(pid, SIGUSR1);
+		notify("Clipboard", "clipmenu is now disabled.", "com.github.davidmhewitt.clipped", NOTIFY_URGENCY_NORMAL, 0);
+
+		sleep(seconds);
+
+		kill(pid, SIGUSR2);
+		notify("Clipboard", "clipmenu is now enabled.", "com.github.davidmhewitt.clipped", NOTIFY_URGENCY_NORMAL, 0);
+
+		exit(EXIT_SUCCESS);
+
+	default:
+		break;
+	}
+}
+
+static void
+directory_delete_files(const char *path)
+{
+	struct dirent *ent;
+	DIR           *dir;
+	char          filepath[PATH_MAX];
+
+	dir = opendir(path);
+
+	if (!dir) {
+		char log[512];
+
+		sprintf(log, "Failed to open clipmenu cache dir: %s", strerror(errno));
+		log_string(log, "dwmblocks-internet");
+
+		exit(errno);
 	}
 
-	for (int i = 0; i < ret; i++) {
-		strcpy(filepath, path);
-		strcat(filepath, "/");
-		strcat(filepath, dir[i]->d_name);
+	while ((ent = readdir(dir))) {
+		sprintf(filepath, "%s/%s", path, ent->d_name);
 		remove(filepath);
 	}
-	freestruct(dir, ret);
+
+	closedir(dir);
 }
 
-void deleteclipall() {
-	FILE *ep;
-	char path[1024];
-	char *ptr = NULL;
+static void
+dwmblocks_restart(void)
+{
+	char *path;
 
-	switch (fork()) {
-		case -1:
-			perror("Failed in forking");
-			exit(EXIT_FAILURE);
-			break;
-		case 0:
-			if ((ep = popen("clipctl cache-dir", "r")) == NULL){
-				perror("Failed to exec clipctl cmd");
-				exit(EXIT_FAILURE);
-			}
-			fgets(path, 1024, ep);
-			pclose(ep);
-			if ((ptr = strchr(path, '\n')))
-				*ptr = '\0';
-			emptydir(path);
-			strcat(path, "/status");
-			ep = fopen(path, "w");
-			fprintf(ep, "enabled\n");
-			fclose(ep);
-			exit(EXIT_SUCCESS);
-		default:
-			break;
-	}
+	unsetenv("BLOCK_BUTTON");
+	if (killstr("dwmblocks", SIGTERM, "dwmblocks-power") < 0)
+		exit(ESRCH);
+
+	path = get_path((char**) dwmblpath, TRUE);
+	forkexecv(path, (char**) dwmblsargs, "dwmblocks-power");
+	free(path);
 }
 
-void executebutton() {
-	char *env = getenv("BLOCK_BUTTON");
-	char powermenu[] = " Shutdown\t0\n Reboot\t1\n\n󰗽 Logout\t2\n Lock\t3\n\n Restart DwmBlocks\t4\n󰘚 Optimus Manager\t5\n󰅌 Clipmenu\t6";
-	char yesnoprompt[] = "Yes\t1\nNo\t0";
-	char optimusmenu[] = "Integrated\t0\nHybrid\t1\nNvidia\t2";
-	char clipmenu[] = "Pause clipmenu for 1 minute\t0\nClear clipboard\t1";
-	const char *slockargs[] = {"slock", NULL};
-	const char *dwmblocksargs[] = {"dwmblocks", NULL};
-	int pmsz = sizeof(powermenu);
-	int ynsz = sizeof(yesnoprompt);
-	int optimussz = sizeof(optimusmenu);
-	int clipsz = sizeof(clipmenu);
+static void
+executebutton()
+{
+	char *env;
 
-	if (env == NULL || env[0] != '1')
+	env = getenv("BLOCK_BUTTON");
+
+	if (!env || env[0] != '1')
 		return;
 
-	switch (printmenu(powermenu, pmsz)) {
-		case 0:
-			if (printmenu(yesnoprompt, ynsz) == 1)
-				execl("/bin/shutdown", "shutdown", "now", NULL);
-			break;
-		case 1:
-			if (printmenu(yesnoprompt, ynsz) == 1)
-				execl("/bin/shutdown", "shutdown", "now", "-r", NULL);
-			break;
-		case 2:
-			killstr("/usr/local/bin/dwm", SIGTERM, "dwmblocks-power");
-			break;
-		case 3:
-			sleep(1);
-			forkexecv("/usr/local/bin/slock", (char**) slockargs, "dwmblocks-power");
-			break;
-		case 4:
-			killstr("dwmblocks", SIGTERM, "dwmblocks-power");
-			unsetenv("BLOCK_BUTTON");
-			forkexecv("/usr/local/bin/dwmblocks", (char**) dwmblocksargs, "dwmblocks-power");
-			break;
-		case 5:
-			switch (printmenu(optimusmenu, optimussz)) {
-				case 0:
-					if (printmenu(yesnoprompt, ynsz) == 1)
-						execl("/bin/optimus-manager", "oprimus-manager", "--no-confirm", "--switch", "integrated", NULL);
-					break;
-				case 1:
-					if (printmenu(yesnoprompt, ynsz) == 1)
-						execl("/bin/optimus-manager", "oprimus-manager", "--no-confirm", "--switch", "hybrid", NULL);
-					break;
-				case 2:
-					if (printmenu(yesnoprompt, ynsz) == 1)
-						execl("/bin/optimus-manager", "oprimus-manager", "--no-confirm", "--switch", "nvidia", NULL);
-					break;
-				default:
-					break;
-			}
-			break;
-		case 6:
-			switch (printmenu(clipmenu, clipsz)) {
-				case 0:
-					clippause();
-					break;
-				case 1:
-					deleteclipall();
-					break;
-				default:
-					break;
-			}
-		default:
-			break;
+	switch (get_xmenu_option(powermenu, "dwmblocks-power")) {
+	case 0:
+		if (get_xmenu_option(yesnomenu, "dwmblocks-power") == 1)
+			execl("/bin/shutdown", "shutdown", "now", NULL);
+		break;
+
+	case 1:
+		if (get_xmenu_option(yesnomenu, "dwmblocks-power") == 1)
+			execl("/bin/shutdown", "shutdown", "now", "-r", NULL);
+		break;
+
+	case 2:
+		killstr("/usr/local/bin/dwm", SIGTERM, "dwmblocks-power");
+		break;
+
+	case 3:
+		lock_screen();
+		break;
+
+	case 4:
+		dwmblocks_restart();
+		break;
+
+	case 5:
+		optimus_handle();
+		break;
+
+	case 6:
+		clipboard_handle();
+		break;
+
+	default:
+		break;
 	}
 }
 
+static void
+lock_screen(void)
+{
+	char *path;
 
-int main(void) {
+	path = get_path((char**) slockpath, TRUE);
+	sleep(1);
+
+	forkexecv(path, (char**) slockargs, "dwmblocks-power");
+}
+
+static void
+optimus_handle(void)
+{
+	char *path;
+	
+	path = get_path((char**) optimpath, 1);
+
+	switch (get_xmenu_option(optimusmenu, "dwmblocks-power")) {
+		case 0:
+			if (get_xmenu_option(yesnomenu, "dwmblocks-power") == 1)
+				forkexecv(path, (char**) optintargs, "dwmblocks-power");
+			break;
+
+		case 1:
+			if (get_xmenu_option(yesnomenu, "dwmblocks-power") == 1)
+				forkexecv(path, (char**) opthybargs, "dwmblocks-power");
+			break;
+
+		case 2:
+			if (get_xmenu_option(yesnomenu, "dwmblocks-power") == 1)
+				forkexecv(path, (char**) optnviargs, "dwmblocks-power");
+			break;
+
+		default:
+			break;
+	}
+
+	free(path);
+}
+
+int
+main(void)
+{
 	executebutton();
 	printf(CLR_1 BG_1" "NRM"\n");
+
 	return 0;
 }
