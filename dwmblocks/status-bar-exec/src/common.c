@@ -1,28 +1,75 @@
+#include <linux/limits.h>
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <sys/wait.h>
+#include <stdint.h>
 
 #include "../include/common.h"
 
 const char *log_path[] = {"$HOME", "window-manager.log", NULL};
 
-void
-sanitate_newline(char *string)
-{
-	char *ptr;
+/* file specific functions */
 
-	if ((ptr = strchr(string, '\n')))
-		*ptr = '\0';
+static char*
+format_summary(const char *summary, const char *body)
+{
+	int count = 0;
+	int max_count = 0;
+	char *ret;
+
+	for (char *ptr = (char*) body; *ptr != '\0'; ptr++) {
+		if (*ptr == '\n') {
+			max_count = count > max_count ? count : max_count;
+			count = 0;
+			continue;
+		}
+		count++;
+	}
+
+	max_count = count > max_count ? count : max_count;
+	max_count = (max_count - strlen(summary)) / 2;
+	count = max_count + strlen(summary);
+
+	ret = malloc((count + 1) * sizeof(ret));
+
+	sprintf(ret, "%*s", count, summary);
+
+	return ret;
+}
+
+/* header functions */
+
+void
+forkexecv(const char *path, char **args, const char *argv0)
+{
+	switch (fork()) {
+	case -1:
+		log_string("fork() failed", argv0);
+		exit(errno);
+
+	case 0:
+		setsid();
+		execv(path, args);
+
+		char log[512];
+		sprintf(log, "forkexecv() failed for:%s - %s", args[0], strerror(errno));
+		log_string(log, argv0);
+		exit(errno);
+
+	default:
+		break;
+	}
 }
 
 char*
 get_path(char **path_array, int is_file)
 {
-	char path[4096] = "";
-	char temp_path[256];
+	char path[PATH_MAX];
+	char name[NAME_MAX];
 	char *ret;
 
 	for (int i = 0; path_array[i] != NULL; i++) {
@@ -31,18 +78,18 @@ get_path(char **path_array, int is_file)
 			char *env = getenv(ptr);
 
 			if (!env) {
-				fprintf(stderr, "Failed to get env variable:%s\n", path_array[i]);
-				exit(EXIT_FAILURE);
+				fprintf(stderr, "Failed to get env variable:%s - %s\n", path_array[i], strerror(errno));
+				exit(errno);
 			}
 
-			sprintf(temp_path, "%s/", env);
-			strcat(path, temp_path);
+			sprintf(name, "%s/", env);
+			strcat(path, name);
 		} else {
 			if (i == 0)
 				strcat(path, "/");
 
-			sprintf(temp_path, "%s/", path_array[i]);
-			strcat(path, temp_path);
+			sprintf(name, "%s/", path_array[i]);
+			strcat(path, name);
 		}
 	}
 	
@@ -56,6 +103,17 @@ get_path(char **path_array, int is_file)
 	strcpy(ret, path);
 	return ret;
 }
+
+void
+sanitate_newline(const char *string)
+{
+	char *ptr;
+
+	if ((ptr = strchr(string, '\n')))
+		*ptr = '\0';
+}
+
+
 
 void
 log_string(const char *string, const char *argv0)
@@ -88,72 +146,26 @@ log_string(const char *string, const char *argv0)
 		free(path);
 }
 
-void forkexecv(char *path, char *args[], const char *argv0) {
-	pid_t pID;
-
-	pID = fork();
-	if (pID < 0) {
-		log_string("fork() failed", argv0);
-		exit(EXIT_FAILURE);
-	} else if (pID == 0) {
-		setsid();
-		execv(path, args);
-
-		char string[512];
-		strcpy(string, "forkexecv() failed for:");
-		strcat(string, args[0]);
-		log_string(string, argv0);
-		exit(EXIT_FAILURE);
-	}
-}
-
-void format_summary(char *text, char *body, char *summary) {
-	int lcount = 0;
-	int mcount = 0;
-
-	summary[0] = '\0';
-
-	for (int i = 0; i < (int) strlen(body); i++) {
-		if (body[i] == '\n') {
-			if (lcount > mcount)
-				mcount = lcount;
-			lcount = 0;
-			continue;
-		}
-		lcount++;
-	}
-	
-	if (lcount > mcount)
-		mcount = lcount;
-	mcount = (mcount - strlen(text)) / 2;
-
-	for (int i = 0; i < mcount; i++)
-		strcat(summary, " ");
-	strcat(summary, text);
-}
-
 int notify(char *summary, char *body, char *icon, NotifyUrgency urgency, int no_format_summary) {
 	notify_init("dwmblocks");
 
-	char temp_summary[512];
-	if (!no_format_summary)
-		format_summary(summary, body, temp_summary);
-	else
-		strcpy(temp_summary, summary);
+	char *sum;
 
-	NotifyNotification *notification = notify_notification_new(temp_summary, body, icon);
+	if (!no_format_summary) {
+		sum = format_summary(summary, body);
+	} else {
+		sum = malloc((strlen(summary) + 1) * sizeof(char));
+		strcpy(sum, summary);
+	}
+
+	NotifyNotification *notification = notify_notification_new(sum, body, icon);
 	notify_notification_set_urgency(notification, urgency);
 
 	notify_notification_show(notification, NULL);
 	g_object_unref(G_OBJECT(notification));
 	notify_uninit();
+	free(sum);
 	return 0;
-}
-
-void freestruct(struct dirent **input, int n) {
-	while (n--)
-		free(input[n]);
-	free(input);
 }
 
 int isnumber(char *string) {
@@ -163,39 +175,123 @@ int isnumber(char *string) {
 	return 1;
 }
 
-void killstr(char *procname, int signo, const char *argv0) {
-	FILE *fp;
-	struct dirent **pidlist;
-	int funcret;
-	char buffer[128];
-	char filename[128];
+int str_to_uint64(const char *input, uint64_t *output) {
+	char *endptr;
+	errno = 0;
 
-	pid_t pID = -1;
-
-	if ((funcret  = scandir("/proc", &pidlist, NULL, alphasort)) == -1) {
-		log_string("Failed to scan /proc directoy", argv0);
-		freestruct(pidlist, funcret);
-		exit(EXIT_FAILURE);
+	uint64_t val = strtoull(input, &endptr, 10);
+	if (errno > 0) {
+		return -1;
+	}
+	if (!endptr || endptr == input || *endptr != 0) {
+		return -EINVAL;
+	}
+	if (val != 0 && input[0] == '-') {
+		return -ERANGE;
 	}
 
-	for (int i = 0; i < funcret; i++) {
-		if (isnumber(pidlist[i]->d_name)) {
-			strcpy(filename, "/proc/");
-			strcat(filename, pidlist[i]->d_name);
-			strcat(filename, "/cmdline");
-			fp = fopen(filename, "r");
-			if (fp == NULL) {
-				continue;
-			}
-			fgets(buffer, sizeof(buffer), fp);
-			fclose(fp);
-			if (strcmp(buffer, procname) == 0) {
-				pID = strtol(pidlist[i]->d_name, NULL, 10);
-				break;
-			}
+	*output = val;
+	return 0;
+}
+
+pid_t
+get_pid_of(const char *proccess, const char *argv0)
+{
+	DIR           *dir;
+	pid_t         ret;
+	struct dirent *ent;
+	FILE          *fp;
+	char          buffer[PATH_MAX];
+	uint64_t      pid;
+
+	dir = opendir("/proc");
+	ret = 0;
+
+	if (!dir) {
+		log_string("Failed to get /proc directory", argv0);
+		return -ENOENT;
+	}
+
+	while ((ent = readdir(dir)) && ret >= 0) {
+		 if (str_to_uint64(ent->d_name, &pid) < 0)
+			continue;
+
+		snprintf(buffer, sizeof(buffer), "/proc/%s/cmdline", ent->d_name);
+		fp = fopen(buffer, "r");
+		if (!fp)
+			continue;
+		if (!fgets(buffer, sizeof(buffer), fp))
+			continue;
+		if ((strcmp(buffer, proccess) == 0)) {
+			ret = ret ? -EEXIST : (pid_t)pid;
 		}
 	}
-	if (pID != -1)
+
+	closedir(dir);
+	return ret ? ret : -ENOENT;
+}
+
+pid_t
+killstr(char *procname, int signo, const char *argv0)
+{
+	pid_t pID = get_pid_of(procname, argv0);
+
+	if (pID > 0) {
 		kill(pID, signo);
-	freestruct(pidlist, funcret);
+		return 0;
+	}
+	return pID;
+}
+
+int
+get_xmenu_option(const char *menu, const char *argv0)
+{
+	int  option;
+	int  writepipe[2];
+	int  readpipe[2];
+	char buffer[16];
+
+	option = -EREMOTEIO;
+	buffer[0] = '\0';
+
+	if (pipe(writepipe) < 0 || pipe(readpipe) < 0) {
+		log_string("Failed to initialize pipes", argv0);
+		return -ESTRPIPE;
+	}
+	
+	switch (fork()) {
+		case -1:
+			log_string("fork() failed", argv0);
+			return -ECHILD;
+
+		case 0: /* child - xmenu */
+			close(writepipe[1]);
+			close(readpipe[0]);
+
+			dup2(writepipe[0], STDIN_FILENO);
+			close(writepipe[0]);
+
+			dup2(readpipe[1], STDOUT_FILENO);
+			close(readpipe[1]);
+			
+			execl("/usr/bin/xmenu", "xmenu", NULL);
+			exit(EXIT_FAILURE);
+
+		default: /* parent */
+			close(writepipe[0]);
+			close(readpipe[1]);
+
+			write(writepipe[1], menu, strlen(menu) + 1);
+			close(writepipe[1]);
+
+			wait(NULL);
+
+			read(readpipe[0], buffer, sizeof(buffer));
+			close(readpipe[0]);
+	}
+
+	if (buffer[0] != '\0')
+		sscanf(buffer, "%d", &option);
+
+	return option;
 }
