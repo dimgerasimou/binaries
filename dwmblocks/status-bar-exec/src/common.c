@@ -56,7 +56,7 @@ forkexecv(const char *path, char **args, const char *argv0)
 		execv(path, args);
 
 		char log[512];
-		sprintf(log, "forkexecv() failed for:%s - %s", args[0], strerror(errno));
+		sprintf(log, "forkexecv() failed for: %s - %s", args[0], strerror(errno));
 		log_string(log, argv0);
 		exit(errno);
 
@@ -72,6 +72,8 @@ get_path(char **path_array, int is_file)
 	char name[NAME_MAX];
 	char *ret;
 
+	path[0] = '\0';
+
 	for (int i = 0; path_array[i] != NULL; i++) {
 		if (path_array[i][0] == '$') {
 			const char *ptr = path_array[i] + 1;
@@ -82,21 +84,18 @@ get_path(char **path_array, int is_file)
 				exit(errno);
 			}
 
-			sprintf(name, "%s/", env);
+			sprintf(name, "%s", env);
 			strcat(path, name);
 		} else {
-			if (i == 0)
-				strcat(path, "/");
-
-			sprintf(name, "%s/", path_array[i]);
+			sprintf(name, "/%s", path_array[i]);
 			strcat(path, name);
 		}
 	}
 	
-	if (is_file && path[0] != '\0') {
+	if (!is_file && path[0] != '\0') {
 		char *ptr = strchr(path, '\0');
-		ptr--;
-		*ptr = '\0';
+		*ptr = '/';
+		*(++ptr) = '\0';
 	}
 
 	ret = (char*) malloc((strlen(path)+1) * sizeof(char));
