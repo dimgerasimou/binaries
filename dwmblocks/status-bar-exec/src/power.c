@@ -161,11 +161,17 @@ dwmblocks_restart(void)
 {
 	char *path;
 
-	unsetenv("BLOCK_BUTTON");
-	if (killstr("dwmblocks", SIGTERM, "dwmblocks-power") < 0)
-		exit(ESRCH);
-
 	path = get_path((char**) dwmblpath, TRUE);
+	unsetenv("BLOCK_BUTTON");
+
+	if (killstr(path, SIGTERM, "dwmblocks-power") < 0) {
+		char log[1024];
+
+		sprintf(log, "Could not get the pid of: %s - %s", path, strerror(ESRCH));
+		log_string(log, "dwmblocks-power");
+		exit(ESRCH);
+	}
+
 	forkexecv(path, (char**) dwmblsargs, "dwmblocks-power");
 	free(path);
 }
@@ -225,6 +231,7 @@ lock_screen(void)
 	sleep(1);
 
 	forkexecv(path, (char**) slockargs, "dwmblocks-power");
+	free(path);
 }
 
 static void
