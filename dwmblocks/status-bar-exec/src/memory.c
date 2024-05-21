@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,68 +7,77 @@
 #include "../include/colorscheme.h"
 #include "../include/common.h"
 
-const char *htoppath   = "/usr/local/bin/st";
+const char *htoppath[] = {"usr", "local", "bin", "st", NULL};
 const char *htopargs[] = {"st", "-e", "sh", "-c", "htop", NULL};
 
-long
-calculateused()
+static long
+calculate_used(void)
 {
 	FILE *fp;
 	char buffer[128];
 	char *ptr;
 	long used=0, temp;
 
-	if (!(fp = fopen("/proc/meminfo", "r")))
-		return 0;
+	if (!(fp = fopen("/proc/meminfo", "r"))) {
+		char log[256];
 
-	while (fgets(buffer, 128, fp)) {
-		if (strstr(buffer, "MemTotal") != 0) {
+		sprintf(log, "fopen() failed for: /proc/meminfo - %s", strerror(errno));
+		exit(errno);
+	}
+
+	while (fgets(buffer, sizeof(buffer), fp)) {
+		if (strstr(buffer, "MemTotal")) {
 			ptr = (strchr(buffer, ':')) + 1;
 			sscanf(ptr, "%ld", &temp);
 			used += temp;
 			continue;
 		}
 
-		if (strstr(buffer, "MemFree") != 0) {
+		if (strstr(buffer, "MemFree")) {
 			ptr = (strchr(buffer, ':')) + 1;
 			sscanf(ptr, "%ld", &temp);
 			used -= temp;
 			continue;
 		}
 
-		if (strstr(buffer, "Buffers") != 0) {
+		if (strstr(buffer, "Buffers")) {
 			ptr = (strchr(buffer, ':')) + 1;
 			sscanf(ptr, "%ld", &temp);
 			used -= temp;
 			continue;
 		}
 
-		if (strstr(buffer, "Cached") != 0) {
+		if (strstr(buffer, "Cached")) {
 			ptr = (strchr(buffer, ':')) + 1;
 			sscanf(ptr, "%ld", &temp);
 			used -= temp;
 			break;
 		}
 	}
+
 	fclose(fp);
 	return used;
-
 }
 
-
-void
-executebutton()
+static void
+execute_button(void)
 {
-	char *env = getenv("BLOCK_BUTTON");
+	char *env;
+	char *path;
 
-	if (env && env[0] == '2') 
-		forkexecv((char*) htoppath, (char**)htopargs, "dwmblocks-memory");
+	env = getenv("BLOCK_BUTTON");
+
+	if (env && !strcmp(env, "2")) {
+		path = get_path((char**) htoppath, 1);
+		forkexecv(path, (char**)htopargs, "dwmblocks-memory");
+		free(path);
+	}
 }
 
 int
 main(void)
 {
-	executebutton();
-	printf(CLR_3"   %.1lfGiB"NRM"\n", ((calculateused())/1024.0)/1024.0);
+	execute_button();
+	printf(CLR_3"   %.1lfGiB"NRM"\n", ((calculate_used())/1024.0)/1024.0);
 	return 0;
 }
