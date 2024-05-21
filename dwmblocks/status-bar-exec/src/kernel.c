@@ -40,9 +40,11 @@ update_counter(int *aur, int *pacman)
 static void
 execute_button(const int aur, const int pacman)
 {
-	char *env = getenv("BLOCK_BUTTON");
+	char *env;
+	
+	env = getenv("BLOCK_BUTTON");
 
-	if (env && strcmp(env, "1") == 0) {
+	if (env && !strcmp(env, "1")) {
 		char body[64];
 
 		sprintf(body, "󰏖 Pacman Updates: %d\n AUR Updates: %d", pacman, aur);
