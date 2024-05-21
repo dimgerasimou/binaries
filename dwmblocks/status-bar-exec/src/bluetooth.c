@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "../include/colorscheme.h"
 #include "../include/common.h"
 
@@ -14,21 +15,21 @@ const char *bt_show     = "bluetoothctl show";
 const char *bt_info     = "bluetoothctl info";
 const char *bt_con      = "bluetoothctl devices Connected";
 
-int
-is_powered()
+static int
+is_powered(void)
 {
 	FILE *ep;
 	char buffer[128];
 
 	if (!(ep = popen(bt_show, "r"))) {
-		char log[512] = "Failed to execute ";
+		char log[512];
 
-		strcat(log, bt_show);
+		sprintf(log, "popen() failed for: %s - %s", bt_show, strerror(errno));
 		log_string(log, "dwmblocks-bluetooth");
-		exit(EXIT_FAILURE);
+		exit(errno);
 	}
 
-	while (fgets(buffer, 128, ep)) {
+	while (fgets(buffer, sizeof(buffer), ep)) {
 		if (strstr(buffer, "Powered")) {
 			pclose(ep);
 
@@ -43,23 +44,21 @@ is_powered()
 	return 0;
 }
 
-int
+static int
 audio_device(char *address)
 {
 	FILE *ep;
 	char cmd[128];
 	char buf[128];
 
-	strcpy(cmd, bt_info);
-	strcat(cmd, " ");
-	strcat(cmd, address);
+	sprintf(cmd, "%s %s", bt_info, address);
 
 	if (!(ep = popen(cmd, "r"))) {
-		char log[512] = "Failed to execute ";
+		char log[512];
 
-		strcat(log, cmd);
+		sprintf(log, "popen() failed for: %s - %s", cmd, strerror(errno));
 		log_string(log, "dwmblocks-bluetooth");
-		exit(EXIT_FAILURE);
+		exit(errno);
 	}
 
 	while(fgets(buf, sizeof(buf), ep)) {
@@ -73,29 +72,29 @@ audio_device(char *address)
 	return 0;
 }
 
-int
-has_audio()
+static int
+has_audio(void)
 {
 	FILE *ep;
 	char buffer[256];
 	char mac[18];
-	char *temp;
+	char *ptr;
 
 	if (!(ep = popen(bt_con, "r"))) {
-		char log[512] = "Failed to execute ";
+		char log[512];
 
-		strcat(log, bt_show);
+		sprintf(log, "popen() failed for: %s - %s", bt_con, strerror(errno));
 		log_string(log, "dwmblocks-bluetooth");
-		exit(EXIT_FAILURE);
+		exit(errno);
 	}
 
 	while (fgets(buffer, sizeof(buffer), ep)) {
 		if (strstr(buffer, "Device")) {
-			temp = buffer;
-			temp += 7;
+			ptr = buffer;
+			ptr += 7;
+			sanitate_newline(ptr);
 
-			strncpy(mac, temp, 17);
-			sanitate_newline(temp);
+			strncpy(mac, ptr, 17);
 
 			if (audio_device(mac)) {
 				pclose(ep);
@@ -108,44 +107,42 @@ has_audio()
 	return 0;
 }
 
-void
-execute_block()
+static void
+execute_block(void)
 {
 	char *button;
-	char *path = NULL;
+	char *path;
 
-	if ((button = getenv("BLOCK_BUTTON")) == NULL)
+	if (!(button = getenv("BLOCK_BUTTON")))
 		return;
 
 	switch (button[0] - '0') {
-		case 1:
-			path = get_path((char**) menu_path, 1);
-			forkexecv(path, (char**) menu_args, "dwmblocks-bluetooth");
-			break;
-
-		case 2:
-			path = get_path((char**) tui_path, 1);
-			forkexecv(path, (char**) tui_args, "dwmblocks-bluetooth");
-			break;
-
-		default:
-			break;
-	}
-
-	if (path)
+	case 1:
+		path = get_path((char**) menu_path, 1);
+		forkexecv(path, (char**) menu_args, "dwmblocks-bluetooth");
 		free(path);
+		break;
+
+	case 2:
+		path = get_path((char**) tui_path, 1);
+		forkexecv(path, (char**) tui_args, "dwmblocks-bluetooth");
+		free(path);
+		break;
+
+	default:
+		break;
+	}
 }
 
 int
 main(void)
 {
-	int icon_arg = 0;
+	int icon_arg;
 
 	execute_block();
 
-	icon_arg += is_powered();
-	if (icon_arg)
-		icon_arg += has_audio();
+	icon_arg = is_powered();
+	icon_arg = icon_arg && has_audio() ? 2 : icon_arg;
 
 	printf(CLR_4 BG_1" %s " NRM "\n", icon_ls[icon_arg]);
 
