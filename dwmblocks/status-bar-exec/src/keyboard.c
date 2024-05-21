@@ -3,10 +3,11 @@
 #include <string.h>
 #include <X11/XKBlib.h>
 #include <X11/extensions/XKBrules.h>
+
 #include "../include/colorscheme.h"
 #include "../include/common.h"
 
-void
+static void
 XkbRF_FreeVarDefs(XkbRF_VarDefsRec *var_defs)
 {
 	if (!var_defs)
@@ -20,7 +21,6 @@ XkbRF_FreeVarDefs(XkbRF_VarDefsRec *var_defs)
 	free(var_defs->extra_values);
 }
 
-
 int
 main(void)
 {
@@ -31,7 +31,7 @@ main(void)
 
 	if (!(dpy = XOpenDisplay(NULL))) {
 		log_string("Cannot open X11 display", "dwmblocks-keyboard");
-		return EXIT_FAILURE;
+		return errno;
 	}
 
 	XkbGetState(dpy, XkbUseCoreKbd, &state);
@@ -42,7 +42,7 @@ main(void)
 	for (int i = 0; i < state.group; i++) {
 		tok = strtok(NULL, ",");
 		if (!tok) {
-			log_string("Cannot get vd.layout", "dwmblocks-keyboard");
+			log_string("Invalid layout for given group", "dwmblocks-keyboard");
 			return EXIT_FAILURE;
 		}
 	}
