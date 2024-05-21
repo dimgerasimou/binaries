@@ -16,7 +16,7 @@ const char *models[]   = { "Unmanaged", "Integrated", "Hybrid", "Nvidia"};
 const char *iconls[]   = { NULL, "intel", "deepin-graphics-driver-manager", "nvidia"};
 
 static int
-get_mode()
+get_mode(void)
 {
 	FILE *ep;
 	char buffer[64];
