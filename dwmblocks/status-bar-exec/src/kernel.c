@@ -13,38 +13,36 @@ const char *aurupdatescmd   = "/bin/paru -Qua";
 const char *pmupdatescmd    = "/bin/checkupdates";
 
 
-int
-checkupdates(const char *command)
+static int
+check_updates(const char *command)
 {
 	FILE *ep;
 	char buffer[64];
 	int  counter = 0;
 
-	if ((ep = popen(command, "r")) == NULL)
-		return counter;
+	if (!(ep = popen(command, "r")))
+		return 0;
 
-	while(fgets(buffer, 64, ep) != NULL)
+	while(fgets(buffer, sizeof(buffer), ep))
 		counter++;
 
 	pclose(ep);
 	return counter;
 }
 
-void
-updatecounter(int *aur, int *pacman)
+static void
+update_counter(int *aur, int *pacman)
 {
-	*aur    = checkupdates(aurupdatescmd);
-	*pacman = checkupdates(pmupdatescmd);
+	*aur    = check_updates(aurupdatescmd);
+	*pacman = check_updates(pmupdatescmd);
 }
 
-void
-executebutton(int aur, int pacman)
+static void
+execute_button(const int aur, const int pacman)
 {
 	char *env = getenv("BLOCK_BUTTON");
 
-	if (env == NULL)
-		return;
-	if(env[0] == '1') {
+	if (env && strcmp(env, "1") == 0) {
 		char body[64];
 
 		sprintf(body, "󰏖 Pacman Updates: %d\n AUR Updates: %d", pacman, aur);
@@ -60,15 +58,16 @@ main(void)
 	int            aurupdates;
 	int            pacmanupdates;
 
-	updatecounter(&aurupdates, &pacmanupdates);
-	executebutton(aurupdates, pacmanupdates);
+	update_counter(&aurupdates, &pacmanupdates);
+	execute_button(aurupdates, pacmanupdates);
 
 	if (uname(&buffer)) {
 		log_string("Failed to allocate utsname struct", "dwmblocks-kernel");
-		return 1;
+		return errno;
 	}
 
 	release = strtok(buffer.release, "-");
+
 	if ((aurupdates + pacmanupdates) > 0)
 		printf(CLR_12"  󰏖 %d  %s"NRM"\n", aurupdates + pacmanupdates, release);
 	else
