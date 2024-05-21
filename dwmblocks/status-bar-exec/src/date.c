@@ -121,7 +121,7 @@ executebutton(const int month_day, const int week_day, const int month, const in
 	char *env;
 	char *path;
 
-	if ((env = getenv("BLOCK_BUTTON")) == NULL)
+	if (!(env = getenv("BLOCK_BUTTON")))
 		return;
 
 	switch (env[0] - '0') {
