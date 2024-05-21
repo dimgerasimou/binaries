@@ -179,13 +179,13 @@ dwmblocks_restart(void)
 }
 
 static void
-executebutton()
+executebutton(void)
 {
 	char *env;
 
 	env = getenv("BLOCK_BUTTON");
 
-	if (!env || env[0] != '1')
+	if (!env || !strcmp(env, "1"))
 		return;
 
 	switch (get_xmenu_option(powermenu, "dwmblocks-power")) {
