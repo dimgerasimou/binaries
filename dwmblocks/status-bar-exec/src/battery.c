@@ -54,7 +54,7 @@ execute_button(const int capacity, const char *status)
 
 	if (env && !strcmp(env, "1")) {
 		char body[256];
-		int mode = get_mode();
+		int  mode = get_mode();
 
 		sprintf(body, "Battery capacity: %d%%\nBattery status: %s\nOptimus manager: %s", capacity, status, models[mode]);
 		notify("Power", body, (char*) iconls[mode], NOTIFY_URGENCY_NORMAL, 1);
