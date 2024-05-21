@@ -30,7 +30,7 @@ get_mode(void)
 		exit(errno);
 	}
 
-	while(fgets(buffer, sizeof(buffer), ep))
+	while (fgets(buffer, sizeof(buffer), ep))
 		if (strstr(buffer, "Current"))
 			break;
 
