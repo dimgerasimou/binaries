@@ -11,31 +11,32 @@ const char *months[] = {"January",    "February", "March",    "April",
                         "May",        "June",     "July",     "August",
                         "Semptember", "October",  "November", "December"};
 
-const int  daysinmonth[] = {31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-const char *firefoxcmd[] = {"firefox", "--new-window", "https://calendar.google.com", NULL};
+const int  daysinmonth[]  = {31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+const char *firefoxpath[] = {"usr", "bin", "firefox", NULL};
+const char *firefoxcmd[]  = {"firefox", "--new-window", "https://calendar.google.com", NULL};
 
-int
-firstdayinmonth(int mday, int wday)
+static int
+first_day_in_month(int month_day, int week_day)
 {
-	while (mday > 7)
-		mday -= 7;
+	while (month_day > 7)
+		month_day -= 7;
 
-	while (mday > 1) {
-		mday--;
-		wday--;
-		if (wday == -1)
-			wday = 6;
+	while (month_day > 1) {
+		month_day--;
+		week_day--;
+		if (week_day == -1)
+			week_day = 6;
 	}
 
-	wday--;
-	if (wday == -1)
-		wday = 6;
+	week_day--;
+	if (week_day == -1)
+		week_day = 6;
 
-	return wday;
+	return week_day;
 }
 
-int
-calculatemonthdays(int month, int year)
+static int
+get_month_days(const int month, const int year)
 {
 	if (month != 1)
 		return daysinmonth[month];
@@ -45,19 +46,25 @@ calculatemonthdays(int month, int year)
 	return 28;
 }
 
-void
-getcalendar(char *calendar, int mday, int wday, int month, int year)
+static char*
+get_calendar(const int month_day, const int week_day, const int month, const int year)
 {
-	int firstday = firstdayinmonth(mday, wday);
-	int monthdays = calculatemonthdays(month, year);
+	int  firstday;
+	int  monthdays;
 	char day[64];
+	char calendar[512];
+	char *ret;
+
+	firstday  = first_day_in_month(month_day, week_day);
+	monthdays = get_month_days(month, year);
 
 	strcpy(calendar, "Mo Tu We Th Fr <span color='#F38BA8'>Sa Su</span>\n");
+
 	for (int i = 0; i < firstday; i++)
 		strcat(calendar, "   ");
 
 	for (int i = 1; i <= monthdays; i++) {
-		if (i == mday)
+		if (i == month_day)
 			sprintf(day, "<span color='black' bgcolor='#F38BA8'>%2d</span> ", i);
 		else if (firstday == 5 || firstday == 6)
 			sprintf(day, "<span color='#F38BA8'>%2d</span> ", i);
@@ -72,57 +79,66 @@ getcalendar(char *calendar, int mday, int wday, int month, int year)
 		strcat(calendar, day);
 		firstday++;
 	}
+
+	ret = malloc((strlen(calendar) + 1) * sizeof(char));
+	strcpy(ret, calendar);
+	return ret;
 }
 
-void
-get_summary(char *summary, int mon, int year)
+static char*
+get_summary(const int month, const int year)
 {
-	char yearstring[16];
-	char temp_summary[64];
+	char *ret;
+	char summary[16];
+	int  total_size;
 
-	temp_summary[0] = '\0';
-	sprintf(yearstring, " %d", year);
-	strcpy(summary, months[mon]);
-	strcat(summary, yearstring);
+	sprintf(summary, "%s %d", months[month], year);
+	total_size = (20 + strlen(summary)) / 2;
 
-	for (int i = 0; i < (20 - (int) strlen(summary)) / 2; i++)
-		strcat(temp_summary, " ");
-
-	strcat(temp_summary, summary);
-	strcpy(summary, temp_summary);
+	ret = malloc((total_size + 1) * sizeof(char));
+	sprintf(ret, "%*s", total_size, summary);
+	return ret;
 }
 
-void
-execcalendar(int mday, int wday, int mon, int year)
+static void
+exec_calendar(const int month_day, const int week_day, const int month, const int year)
 {
-	char body[512];
-	char summary[64];
+	char *body;
+	char *summary;
 
-	getcalendar(body, mday, wday, mon, year);
-	get_summary(summary, mon, year);
+	body    = get_calendar(month_day, week_day, month, year);
+	summary = get_summary(month, year);
+
 	notify(summary, body, "calendar", NOTIFY_URGENCY_NORMAL, 0);
+
+	free(body);
+	free(summary);
 }
 
-
-void
-executebutton(int mday, int wday, int mon, int year)
+static void
+executebutton(const int month_day, const int week_day, const int month, const int year)
 {
 	char *env;
+	char *path;
 
 	if ((env = getenv("BLOCK_BUTTON")) == NULL)
 		return;
 
 	switch (env[0] - '0') {
-		case 1:
-			execcalendar(mday, wday, mon, year);
-			return;
+	case 1:
+		exec_calendar(month_day, week_day, month, year);
+		return;
 
-		case 3:
-			forkexecv("/usr/bin/firefox", (char **) firefoxcmd, "dwmblocks-date");
-			return;
+	case 3:
+		path = get_path((char**) firefoxpath, 1);
 
-		default:
-			break;
+		forkexecv(path, (char **) firefoxcmd, "dwmblocks-date");
+
+		free(path);
+		return;
+
+	default:
+		break;
 	}
 }
 
@@ -136,5 +152,6 @@ main()
 	              localTime->tm_year + 1900);
 
 	printf(CLR_1 "   %02d/%02d" NRM "\n", localTime->tm_mday, ++localTime->tm_mon);
+
 	return 0;
 }
