@@ -1,4 +1,3 @@
-#include <libnotify/notification.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,7 +48,7 @@ executebutton(int aur, int pacman)
 		char body[64];
 
 		sprintf(body, "󰏖 Pacman Updates: %d\n AUR Updates: %d", pacman, aur);
-		notify("Packages", body, "tux", NOTIFY_URGENCY_LOW, 0);
+		notify("Packages", body, "tux", NOTIFY_URGENCY_LOW, 1);
 	}
 }
 

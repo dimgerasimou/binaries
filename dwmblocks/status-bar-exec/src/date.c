@@ -100,7 +100,7 @@ execcalendar(int mday, int wday, int mon, int year)
 
 	getcalendar(body, mday, wday, mon, year);
 	get_summary(summary, mon, year);
-	notify(summary, body, "calendar", NOTIFY_URGENCY_NORMAL, 1);
+	notify(summary, body, "calendar", NOTIFY_URGENCY_NORMAL, 0);
 }
 
 

@@ -54,7 +54,7 @@ modenotify(int capacity, char *status)
 
 	sprintf(body, "Battery capacity: %d%%\nBattery status: %s\nOptimus manager: ", capacity, status);
 	strcat(body, models[mode]);
-	notify("Power", body, (char*) iconls[mode], NOTIFY_URGENCY_LOW, 0);
+	notify("Power", body, (char*) iconls[mode], NOTIFY_URGENCY_LOW, 1);
 }
 
 void

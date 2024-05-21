@@ -116,12 +116,12 @@ clipboard_pause(const unsigned int seconds)
 		}
 
 		kill(pid, SIGUSR1);
-		notify("Clipboard", "clipmenu is now disabled.", "com.github.davidmhewitt.clipped", NOTIFY_URGENCY_NORMAL, 0);
+		notify("Clipboard", "clipmenu is now disabled.", "com.github.davidmhewitt.clipped", NOTIFY_URGENCY_NORMAL, 1);
 
 		sleep(seconds);
 
 		kill(pid, SIGUSR2);
-		notify("Clipboard", "clipmenu is now enabled.", "com.github.davidmhewitt.clipped", NOTIFY_URGENCY_NORMAL, 0);
+		notify("Clipboard", "clipmenu is now enabled.", "com.github.davidmhewitt.clipped", NOTIFY_URGENCY_NORMAL, 1);
 
 		exit(EXIT_SUCCESS);
 
@@ -164,12 +164,14 @@ dwmblocks_restart(void)
 	path = get_path((char**) dwmblpath, TRUE);
 	unsetenv("BLOCK_BUTTON");
 
-	if (killstr(path, SIGTERM, "dwmblocks-power") < 0) {
-		char log[1024];
+	if (killstr("dwmblocks", SIGTERM, "dwmblocks-power") < 0) {
+		if (killstr(path, SIGTERM, "dwmblocks-power") < 0) {
+			char log[1024];
 
-		sprintf(log, "Could not get the pid of: %s - %s", path, strerror(ESRCH));
-		log_string(log, "dwmblocks-power");
-		exit(ESRCH);
+			sprintf(log, "Could not get the pid of: %s - %s", path, strerror(ESRCH));
+			log_string(log, "dwmblocks-power");
+			exit(ESRCH);
+		}
 	}
 
 	forkexecv(path, (char**) dwmblsargs, "dwmblocks-power");

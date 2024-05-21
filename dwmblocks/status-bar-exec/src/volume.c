@@ -1,4 +1,3 @@
-#include <libnotify/notification.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -52,7 +51,7 @@ void notifyproperties(int volume, int muted) {
 	pclose(ep);
 	
 	sprintf(buffer, " Volume: %3d%%, Muted?: %d\n Volume: %3d%%, Muted?: %d\n", volume, muted, micvol, micmuted);
-	notify("Wireplumber", buffer, "audio-headphones", NOTIFY_URGENCY_LOW, 0);
+	notify("Wireplumber", buffer, "audio-headphones", NOTIFY_URGENCY_LOW, 1);
 }
 
 void executebutton(int volume, int muted) {

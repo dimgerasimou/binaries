@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <linux/limits.h>
 #include <signal.h>
 #include <string.h>
@@ -17,9 +18,10 @@ const char *log_path[] = {"$HOME", "window-manager.log", NULL};
 static char*
 format_summary(const char *summary, const char *body)
 {
-	int count = 0;
-	int max_count = 0;
-	char *ret;
+	unsigned int count = 0;
+	unsigned int max_count = 0;
+	unsigned int total;
+	char         *ret;
 
 	for (char *ptr = (char*) body; *ptr != '\0'; ptr++) {
 		if (*ptr == '\n') {
@@ -31,14 +33,34 @@ format_summary(const char *summary, const char *body)
 	}
 
 	max_count = count > max_count ? count : max_count;
-	max_count = (max_count - strlen(summary)) / 2;
-	count = max_count + strlen(summary);
+	count = (max_count - strlen(summary)) / 2;
+	total = count + strlen(summary);
 
-	ret = malloc((count + 1) * sizeof(ret));
+	ret = malloc((total + 1) * sizeof(char));
 
-	sprintf(ret, "%*s", count, summary);
+	sprintf(ret, "%*s", total, summary);
 
 	return ret;
+}
+
+static int
+str_to_uint64(const char *input, uint64_t *output)
+{
+	char     *endptr;
+	uint64_t val;
+
+	errno = 0;
+	val = strtoull(input, &endptr, 10);
+
+	if (errno > 0)
+		return -1;
+	if (!endptr || endptr == input || *endptr != 0)
+		return -EINVAL;
+	if (val != 0 && input[0] == '-')
+		return -ERANGE;
+
+	*output = val;
+	return 0;
 }
 
 /* header functions */
@@ -66,7 +88,7 @@ forkexecv(const char *path, char **args, const char *argv0)
 }
 
 char*
-get_path(char **path_array, int is_file)
+get_path(char **path_array, const int is_file)
 {
 	char path[PATH_MAX];
 	char name[NAME_MAX];
@@ -103,98 +125,8 @@ get_path(char **path_array, int is_file)
 	return ret;
 }
 
-void
-sanitate_newline(const char *string)
-{
-	char *ptr;
-
-	if ((ptr = strchr(string, '\n')))
-		*ptr = '\0';
-}
-
-
-
-void
-log_string(const char *string, const char *argv0)
-{
-	if (!string && strlen(string) < 1)
-		return;
-
-	FILE      *fp;
-	time_t    rawtime;
-	struct tm *timeinfo;
-	char      *path;
-
-	path = get_path((char**) log_path, 1);
-
-	if (!(fp = fopen(path, "a"))) {
-		fprintf(stderr, "Failed to open in append mode, path:%s\n", path);
-		exit(EXIT_FAILURE);
-	}
-
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
-
-	fprintf(fp, "%d-%d-%d %d:%d:%d %s\n%s\n\n", timeinfo->tm_year+1900,
-		timeinfo->tm_mon+1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, argv0, string);
-	
-	if (fp)
-		fclose(fp);
-
-	if (path)
-		free(path);
-}
-
-int notify(char *summary, char *body, char *icon, NotifyUrgency urgency, int no_format_summary) {
-	notify_init("dwmblocks");
-
-	char *sum;
-
-	if (!no_format_summary) {
-		sum = format_summary(summary, body);
-	} else {
-		sum = malloc((strlen(summary) + 1) * sizeof(char));
-		strcpy(sum, summary);
-	}
-
-	NotifyNotification *notification = notify_notification_new(sum, body, icon);
-	notify_notification_set_urgency(notification, urgency);
-
-	notify_notification_show(notification, NULL);
-	g_object_unref(G_OBJECT(notification));
-	notify_uninit();
-	free(sum);
-	return 0;
-}
-
-int isnumber(char *string) {
-	for (int i = 0; i < (int) strlen(string); i++)
-		if (string[i] > '9' || string[i] < '0')
-			return 0;
-	return 1;
-}
-
-int str_to_uint64(const char *input, uint64_t *output) {
-	char *endptr;
-	errno = 0;
-
-	uint64_t val = strtoull(input, &endptr, 10);
-	if (errno > 0) {
-		return -1;
-	}
-	if (!endptr || endptr == input || *endptr != 0) {
-		return -EINVAL;
-	}
-	if (val != 0 && input[0] == '-') {
-		return -ERANGE;
-	}
-
-	*output = val;
-	return 0;
-}
-
 pid_t
-get_pid_of(const char *proccess, const char *argv0)
+get_pid_of(const char *process, const char *argv0)
 {
 	DIR           *dir;
 	pid_t         ret;
@@ -212,7 +144,7 @@ get_pid_of(const char *proccess, const char *argv0)
 	}
 
 	while ((ent = readdir(dir)) && ret >= 0) {
-		 if (str_to_uint64(ent->d_name, &pid) < 0)
+		if (str_to_uint64(ent->d_name, &pid) < 0)
 			continue;
 
 		snprintf(buffer, sizeof(buffer), "/proc/%s/cmdline", ent->d_name);
@@ -221,25 +153,13 @@ get_pid_of(const char *proccess, const char *argv0)
 			continue;
 		if (!fgets(buffer, sizeof(buffer), fp))
 			continue;
-		if ((strcmp(buffer, proccess) == 0)) {
+		if ((strcmp(buffer, process) == 0)) {
 			ret = ret ? -EEXIST : (pid_t)pid;
 		}
 	}
 
 	closedir(dir);
 	return ret ? ret : -ENOENT;
-}
-
-pid_t
-killstr(char *procname, int signo, const char *argv0)
-{
-	pid_t pID = get_pid_of(procname, argv0);
-
-	if (pID > 0) {
-		kill(pID, signo);
-		return 0;
-	}
-	return pID;
 }
 
 int
@@ -293,4 +213,83 @@ get_xmenu_option(const char *menu, const char *argv0)
 		sscanf(buffer, "%d", &option);
 
 	return option;
+}
+
+pid_t
+killstr(const char *procname, const int signo, const char *argv0)
+{
+	pid_t pID = get_pid_of(procname, argv0);
+
+	if (pID > 0) {
+		kill(pID, signo);
+		return 0;
+	}
+
+	return pID;
+}
+
+void
+log_string(const char *string, const char *argv0)
+{
+	if (!string)
+		return;
+
+	FILE      *fp;
+	time_t    rawtime;
+	struct tm *timeinfo;
+	char      *path;
+
+	path = get_path((char**) log_path, 1);
+
+	if (!(fp = fopen(path, "a"))) {
+		fprintf(stderr, "Failed to open in append mode, path: %s - %s\n", path, strerror(errno));
+		exit(errno);
+	}
+
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+
+	fprintf(fp, "%d-%02d-%02d %02d:%02d:%02d %s\n%s\n\n", timeinfo->tm_year+1900,
+		timeinfo->tm_mon+1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, argv0, string);
+	
+	fclose(fp);
+
+	free(path);
+}
+
+void
+notify(const char *summary, const char *body, const char *icon, NotifyUrgency urgency, const int form_sum)
+{
+	char               *sum;
+	NotifyNotification *notification;
+
+	if (form_sum) {
+		sum = format_summary(summary, body);
+	} else {
+		sum = malloc((strlen(summary) + 1) * sizeof(char));
+		strcpy(sum, summary);
+	}
+
+	notify_init("dwmblocks");
+
+	notification = notify_notification_new(sum, body, icon);
+	notify_notification_set_urgency(notification, urgency);
+	notify_notification_show(notification, NULL);
+
+	g_object_unref(G_OBJECT(notification));
+	notify_uninit();
+	free(sum);
+}
+
+int
+sanitate_newline(const char *string)
+{
+	char *ptr;
+
+	if ((ptr = strchr(string, '\n'))) {
+		*ptr = '\0';
+		return 1;
+	}
+
+	return 0;
 }

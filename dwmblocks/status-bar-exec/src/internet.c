@@ -200,7 +200,7 @@ get_devices_info(NMClient *client, const int index)
 	iconindex = index > 2 ? 2 : index;
 
 	if (!devices) {
-		notify("Network Devices Info", "No network devices detected", (char*) iconarray[0], NOTIFY_URGENCY_NORMAL, 0);
+		notify("Network Devices Info", "No network devices detected", (char*) iconarray[0], NOTIFY_URGENCY_NORMAL, 1);
 		return;
 	}
 
@@ -231,9 +231,9 @@ get_devices_info(NMClient *client, const int index)
 	}
 
 	if (string->len <= 1)
-		notify("Network Devices Info", "No network devices detected", (char*) iconarray[iconindex], NOTIFY_URGENCY_NORMAL, 0);
+		notify("Network Devices Info", "No network devices detected", (char*) iconarray[iconindex], NOTIFY_URGENCY_NORMAL, 1);
 	else
-		notify("Network Devices Info", string->str, (char*) iconarray[iconindex], NOTIFY_URGENCY_NORMAL, 0);
+		notify("Network Devices Info", string->str, (char*) iconarray[iconindex], NOTIFY_URGENCY_NORMAL, 1);
 
 	g_string_free(string, TRUE);
 }
