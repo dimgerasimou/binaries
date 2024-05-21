@@ -1,21 +1,21 @@
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+
 #include "../include/colorscheme.h"
 #include "../include/common.h"
-
-#define OPTIMUS
 
 const char *pmcmd      = "optimus-manager --status";
 const char *cappath    = "/sys/class/power_supply/BAT1/capacity";
 const char *statuspath = "/sys/class/power_supply/BAT1/status";
-const char *baticons[] = { CLR_1" "NRM, CLR_3" "NRM, CLR_2" "NRM, CLR_2" "NRM, CLR_2" "NRM };
+const char *baticons[] = { CLR_1" ", CLR_3" ", CLR_2" ", CLR_2" ", CLR_2" " };
 const char *models[]   = { "Unmanaged", "Integrated", "Hybrid", "Nvidia"};
 const char *iconls[]   = { NULL, "intel", "deepin-graphics-driver-manager", "nvidia"};
 
-int
+static int
 getmode()
 {
 	FILE *ep;
@@ -23,47 +23,40 @@ getmode()
 	int  ret = 0;
 
 	if (!(ep = popen(pmcmd, "r"))) {
-		char log[512] = "Failed to execute ";
+		char log[512];
 
-		strcat(log, pmcmd);
+		sprintf(log, "popen() failed for: %s - %s", pmcmd, strerror(errno));
 		log_string(log, "dwmblocks-battery");
-		exit(EXIT_FAILURE);
+		exit(errno);
 	}
 
-	while(fgets(buffer, 64, ep))
+	while(fgets(buffer, sizeof(buffer), ep))
 		if (strstr(buffer, "Current"))
 			break;
 
-	if (strstr(buffer, "integrated")) {
+	if (strstr(buffer, "integrated"))
 		ret = 1;
-	} else if (strstr(buffer, "hybrid")) {
+	else if (strstr(buffer, "hybrid"))
 		ret = 2;
-	} else if (strstr(buffer, "nvidia")) {
+	else if (strstr(buffer, "nvidia"))
 		ret = 3;
-	}
 
 	pclose(ep);
 	return ret;
 }
 
-void
-modenotify(int capacity, char *status)
-{
-	char body[256];
-	int mode = getmode();
-
-	sprintf(body, "Battery capacity: %d%%\nBattery status: %s\nOptimus manager: ", capacity, status);
-	strcat(body, models[mode]);
-	notify("Power", body, (char*) iconls[mode], NOTIFY_URGENCY_LOW, 1);
-}
-
-void
-executebutton(int capacity, char *status)
+static void
+executebutton(const int capacity, const char *status)
 {
 	char *env = getenv("BLOCK_BUTTON");
 
-	if (env && strcmp(env, "1") == 0)
-		modenotify(capacity, status);
+	if (env && strcmp(env, "1") == 0) {
+		char body[256];
+		int mode = getmode();
+
+		sprintf(body, "Battery capacity: %d%%\nBattery status: %s\nOptimus manager: %s", capacity, status, models[mode]);
+		notify("Power", body, (char*) iconls[mode], NOTIFY_URGENCY_NORMAL, 1);
+	}
 }
 
 int
@@ -74,36 +67,36 @@ main(void)
 	char status[64];
 
 	if (!(fp = fopen(cappath, "r"))) {
-		char log[512] = "Failed to open ";
+		char log[512];
 
-		strcat(log, cappath);
+		sprintf(log, "fopen() failed for: %s - %s", cappath, strerror(errno));
 		log_string(log, "dwmblocks-battery");
-		exit(EXIT_FAILURE);
+		exit(errno);
 	}
 
 	fscanf(fp, "%d", &capacity);
 	fclose(fp);
 
 	if (!(fp = fopen(statuspath, "r"))) {
-		char log[512] = "Failed to open ";
+		char log[512];
 
-		strcat(log, status);
+		sprintf(log, "fopen() failed for: %s - %s", statuspath, strerror(errno));
 		log_string(log, "dwmblocks-battery");
-		exit(EXIT_FAILURE);
+		exit(errno);
 	}
 
 	fgets(status, 64, fp);
 	fclose(fp);
 
-	sanitate_newline(status);
+	while(sanitate_newline(status));
 
 	executebutton(capacity, status);
 
 	if(strcmp(status, "Charging") == 0) {
-		printf(CLR_3 BG_1"  "NRM"\n");
+		printf(CLR_3 BG_1" "NRM"\n");
 		return EXIT_SUCCESS;
 	}
 
-	printf(BG_1"%s\n", baticons[lround(capacity/25.0)]);
+	printf(BG_1"%s"NRM"\n", baticons[lround(capacity/25.0)]);
 	return 0;
 }
