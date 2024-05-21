@@ -16,7 +16,7 @@ const char *models[]   = { "Unmanaged", "Integrated", "Hybrid", "Nvidia"};
 const char *iconls[]   = { NULL, "intel", "deepin-graphics-driver-manager", "nvidia"};
 
 static int
-getmode()
+get_mode()
 {
 	FILE *ep;
 	char buffer[64];
@@ -46,13 +46,15 @@ getmode()
 }
 
 static void
-executebutton(const int capacity, const char *status)
+execute_button(const int capacity, const char *status)
 {
-	char *env = getenv("BLOCK_BUTTON");
+	char *env;
+	
+	env = getenv("BLOCK_BUTTON");
 
-	if (env && strcmp(env, "1") == 0) {
+	if (env && !strcmp(env, "1")) {
 		char body[256];
-		int mode = getmode();
+		int mode = get_mode();
 
 		sprintf(body, "Battery capacity: %d%%\nBattery status: %s\nOptimus manager: %s", capacity, status, models[mode]);
 		notify("Power", body, (char*) iconls[mode], NOTIFY_URGENCY_NORMAL, 1);
@@ -90,9 +92,9 @@ main(void)
 
 	while(sanitate_newline(status));
 
-	executebutton(capacity, status);
+	execute_button(capacity, status);
 
-	if(strcmp(status, "Charging") == 0) {
+	if(!strcmp(status, "Charging")) {
 		printf(CLR_3 BG_1" "NRM"\n");
 		return EXIT_SUCCESS;
 	}
