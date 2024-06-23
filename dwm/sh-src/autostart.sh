@@ -2,7 +2,7 @@
 
 /usr/bin/picom -b
 
-setxkbmap -layout us,gr -option grp:win_space_toggle
+setxkbmap -layout us,gr -option 
 
 $HOME/.local/bin/dwm/xrandr-set
 

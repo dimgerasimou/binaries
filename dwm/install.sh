@@ -3,16 +3,16 @@
 path="$HOME/.local/bin/dwm"
 
 cscripts="audiocontrol mediacontrol takescreenshot xrandr-set"
-shscripts="autostart.sh layoutmenu"
+shscripts="autostart.sh layoutmenu keyboard.sh"
 
 CFLAGS="-Os -Wall -lX11 -lXrandr"
-LFLAGS="`pkg-config --cflags --libs libnotify`"
+LFLAGS="$(pkg-config --cflags --libs libnotify)"
 
 uninstall() {
 	echo "Deleting dwm scripts."
-    
+
 	sudo rm -f /usr/share/xsessions/dwm.desktop
-    
+
 	for script in $shscripts; do
 		rm -f $path/$script
 	done
@@ -32,7 +32,7 @@ install() {
 	sudo mkdir -p /usr/share/xsessions
 	sudo cp misc-src/dwm.desktop /usr/share/xsessions/dwm.desktop
 
-        mkdir -p $path
+	mkdir -p $path
 
 	for script in $shscripts; do
 		cp sh-src/$script $path/$script
