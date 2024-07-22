@@ -118,5 +118,5 @@ Returns current volume and state, notifies it along the default sources info. Ca
 
 - wireplumber
 - st
-- pulsemixer
+- audiocontrol (in this repo)
 - easyeffects

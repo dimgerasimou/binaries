@@ -185,7 +185,7 @@ executebutton(void)
 
 	env = getenv("BLOCK_BUTTON");
 
-	if (!env || !strcmp(env, "1"))
+	if (!env || strcmp(env, "1"))
 		return;
 
 	switch (get_xmenu_option(powermenu, "dwmblocks-power")) {

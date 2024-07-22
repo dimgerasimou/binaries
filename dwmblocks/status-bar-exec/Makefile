@@ -7,7 +7,7 @@ CFLAGS    := -Wall -Wextra -Werror -Wno-deprecated-declarations -Os
 LFLAGS    := -lm -lX11 -lxkbfile `pkg-config --cflags --libs libnotify libnm`
 
 
-BIN = time mediacontrol bluetooth-menu keyboard battery date kernel bluetooth internet memory power volume
+BIN = time bluetooth-menu keyboard battery date kernel bluetooth internet memory power volume
 BIN_PATH = $(addprefix $(PREFIX)/, $(BIN))
 
 

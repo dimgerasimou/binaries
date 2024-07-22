@@ -1,3 +1,4 @@
+#include <libnotify/notification.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -55,26 +56,44 @@ void notifyproperties(int volume, int muted) {
 }
 
 void executebutton(int volume, int muted) {
-        char *env;
-	const char *pmixerargs[] = {"st", "-e", "sh", "-c", "pulsemixer", NULL};
+	char *env;
+	char *path;
+
 	const char *easyeffectsargs[] = {"easyeffects", NULL};
+	const char *increasevol[] = {"audiocontrol", "sink", "increase", NULL};
+	const char *decreasevol[] = {"audiocontrol", "sink", "decrease", NULL};
+	const char *toggmutevol[] = {"audiocontrol", "sink", "mute", NULL};
+	const char *audioctrlpath[]= { "$HOME", ".local", "bin", "dwm", "audiocontrol", NULL};
 
-        if ((env = getenv("BLOCK_BUTTON"))== NULL)
-                return;
+	if ((env = getenv("BLOCK_BUTTON"))== NULL)
+		return;
 
-        switch (env[0] - '0') {
-                case 1: 
-			notifyproperties(volume, muted); 
-                        break;
-                case 2: 
-			forkexecv("/usr/local/bin/st", (char**) pmixerargs, "dwmblocks-volume");
-                        break;
-                case 3: 
-			forkexecv("/usr/bin/easyeffects", (char**) easyeffectsargs, "dwmblocks-volume");
-                        break;
-                default:
+	switch (env[0] - '0') {
+		case 1:
+			path = get_path((char**) audioctrlpath, 1);
+			forkexecv(path, (char**) toggmutevol, "dwmblocks-volume");
+			free(path);
 			break;
-        }
+			
+		case 2:
+			forkexecv("/usr/bin/easyeffects", (char**) easyeffectsargs, "dwmblocks-volume");
+			break;
+		case 3:
+			notifyproperties(volume, muted); 
+			break;
+		case 4:
+			path = get_path((char**) audioctrlpath, 1);
+			forkexecv(path, (char**) increasevol, "dwmblocks-volume");
+			free(path);
+			break;
+		case 5:
+			path = get_path((char**) audioctrlpath, 1);
+			forkexecv(path, (char**) decreasevol, "dwmblocks-volume");
+			free(path);
+			break;
+		default:
+			break;
+	}
 }
 
 
