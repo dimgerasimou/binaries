@@ -2,13 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
 
 #include "../include/colorscheme.h"
 #include "../include/common.h"
 
-const char *updatecommand[] = {"st", "-e", "sh", "-c", "paru", NULL};
+const char *updatecmdpath   = "/usr/local/bin/st";
+const char *updatecmdargs[] = {"st", "-e", "sh", "-c", "paru", NULL};
 const char *aurupdatescmd   = "/bin/paru -Qua";
 const char *pmupdatescmd    = "/bin/checkupdates";
 
@@ -41,14 +43,25 @@ static void
 execute_button(const int aur, const int pacman)
 {
 	char *env;
+	char *body;
 	
-	env = getenv("BLOCK_BUTTON");
+	if (!(env = getenv("BLOCK_BUTTON")))
+		return;
 
-	if (env && !strcmp(env, "1")) {
-		char body[64];
-
+	switch (atoi(env)) {
+	case 1:
+		body = malloc(64 * sizeof(char));
 		sprintf(body, "󰏖 Pacman Updates: %d\n AUR Updates: %d", pacman, aur);
 		notify("Packages", body, "tux", NOTIFY_URGENCY_LOW, 1);
+		free(body);
+		break;
+
+	case 3:
+		forkexecv(updatecmdpath, (char**) updatecmdargs, "dwmblocks-kernel");
+		break;
+
+	default:
+		break;
 	}
 }
 
