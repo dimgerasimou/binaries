@@ -4,14 +4,14 @@
 
 setxkbmap -layout us,gr -option 
 
-$HOME/.local/bin/dwm/xrandr-set
+/usr/local/bin/xrandr-setup
 
 (sleep 0.2 && (nohup easyeffects --gapplication-service &)) &
 (sleep 1 && ($HOME/.local/bin/dwm/audiocontrol sink set 0.8) && ($HOME/.local/bin/dwm/audiocontrol source set 1)) &
 
 feh --bg-fill $HOME/.local/state/dwm/wallpaper.jpg
 
-/usr/lib/mate-polkit/polkit-mate-authentication-agent-1 &
+/usr/bin/lxpolkit &
 
 /usr/local/bin/dwmblocks &
 
