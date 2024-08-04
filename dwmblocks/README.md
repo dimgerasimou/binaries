@@ -24,7 +24,8 @@ Prints a menu with options for bluetooth, or optionaly open the tui settings. Re
 ### Dependencies
 
 - st
-- blutuith (AUR)
+- bluteuith (AUR) (or bluetui)
+- bluez
 - bluez-utils
 
 ## date
