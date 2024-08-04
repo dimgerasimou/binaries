@@ -54,38 +54,6 @@ Runtime:
 Compile time:
 - libnotify
 
-## xrandr
-
-### Usage
-
-Running this executable, querries the `$HOME/.config/xrandr/displaysetup.conf` file to find the first xrandr screen setup by comparing the
-connected monitor names with each screen defined in the configuration file, then updates xrandr with the parsed configuration.
-
-### Example
-
-```
-Section Screen
-	Monitor HDMI-0
-		Primary
-		Refresh Rate 75.00
-	Monitor HDMI-1
-		xOffset 1920
-		yOffset 1080
-		Resolution 1920x1080
-		Rotate right
-EndSection
-
-```
-Every screen only a single primary monitor can be defined. For all other monitors, their position must be defined relative to another defined monitor.
-If the refresh rate or the resolution are not defined in a given monitor, the default value is the maximum supported by xrandr.
-
-### Dependencies
-
-Compile time:
-
-- libx11
-- libxrandr
-
 ## dwm.desktop
 
 ### Usage 
