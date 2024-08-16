@@ -229,6 +229,50 @@ killstr(const char *procname, const int signo, const char *argv0)
 }
 
 void
+logwrite(const char *log, const char *name, const log_level level, const char *argv0)
+{
+	char *str = NULL;
+	unsigned short int err = errno;
+
+	switch (level) {
+	case LOG_SILLY:
+		strapp(&str, "");
+		break;
+
+	case LOG_INFO:
+		strapp(&str, "INFO - ");
+		break;
+
+	case LOG_WARN:
+		strapp(&str, "WARN - ");
+		break;
+
+	case LOG_ERROR:
+		strapp(&str, "ERROR - ");
+		break;
+
+	default:
+		break;
+	}
+
+	strapp(&str, log);
+	if (name) {
+		strapp(&str, " - ");
+		strapp(&str, name);
+	}
+
+	if (level > LOG_INFO) {
+		strapp(&str, " - ");
+		strapp(&str, strerror(err));
+	}
+
+	log_string(str, argv0);
+	free(str);
+	if (level == LOG_ERROR)
+		exit(err);
+}
+
+void
 log_string(const char *string, const char *argv0)
 {
 	if (!string)
@@ -251,7 +295,7 @@ log_string(const char *string, const char *argv0)
 
 	fprintf(fp, "%d-%02d-%02d %02d:%02d:%02d %s\n%s\n\n", timeinfo->tm_year+1900,
 		timeinfo->tm_mon+1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, argv0, string);
-	
+
 	fclose(fp);
 
 	free(path);
@@ -292,4 +336,30 @@ sanitate_newline(const char *string)
 	}
 
 	return 0;
+}
+
+char*
+strapp(char **dest, const char *src)
+{
+	char   *str;
+	size_t len;
+
+	if (!src)
+		return NULL;
+
+	if (!*dest) {
+		*dest = strdup(src);
+		return *dest;
+	}
+
+	len = strlen(*dest) + strlen(src) + 1;
+
+	if (!(str = realloc(*dest, len * sizeof(char)))) {
+		perror("realloc() returned NULL");
+		exit(errno);
+	}
+
+	strncat(str, src, strlen(src));
+	*dest = str;
+	return *dest;
 }

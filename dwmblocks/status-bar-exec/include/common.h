@@ -5,6 +5,13 @@
 #include <libnotify/notify.h>
 #include <glib.h>
 
+typedef enum {
+	LOG_SILLY,
+	LOG_INFO,
+	LOG_WARN,
+	LOG_ERROR,
+} log_level;
+
 /*
  * Forks and executes given command.
  */
@@ -38,6 +45,17 @@ int get_xmenu_option(const char *menu, const char *argv0);
 int killstr(const char *procname, const int signo, const char *argv0);
 
 /*
+ * Writes a log to the file defined by log_path with a timestamp
+ * and the name of the caller (argv0). If name str is NULL,
+ * it doesn't add it. Has multiple log levels:
+ * 	LOG_SILLY: does not write the strerror or log level.
+ * 	LOG_INFO:  writes INFO log level but no strerror.
+ * 	LOG_WARN:  writes WARN log level and strerror.
+ * 	LOG_ERROR: writes ERROR log level, strerror and terminates with errno.
+ */
+void logwrite(const char *log, const char *name, const log_level level, const char *argv0);
+
+/*
  * Logs the string in the file defined by log_path global variable,
  * with a timestamp and the argv0 of the caller.
  */
@@ -53,5 +71,11 @@ void notify(const char *summary, const char *body, const char *icon, NotifyUrgen
  * Returns 1 if it removes any.
  */
 int sanitate_newline(const char *string);
+
+/*
+ * Works exactly as strcat but with
+ * the destination allocated in the heap.
+ */
+char* strapp(char **dest, const char *src);
 
 #endif /* COMMON_H */
