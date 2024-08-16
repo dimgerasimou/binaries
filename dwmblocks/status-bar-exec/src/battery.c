@@ -1,12 +1,13 @@
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "../include/colorscheme.h"
 #include "../include/common.h"
+
+#define BUF_SIZE 64
 
 const char *pmcmd      = "optimus-manager --status";
 const char *cappath    = "/sys/class/power_supply/BAT1/capacity";
@@ -15,30 +16,45 @@ const char *baticons[] = { CLR_1" ", CLR_3" ", CLR_2" ", CLR_2" ", C
 const char *models[]   = { "Unmanaged", "Integrated", "Hybrid", "Nvidia"};
 const char *iconls[]   = { NULL, "intel", "deepin-graphics-driver-manager", "nvidia"};
 
-static int
-get_mode(void)
+static char*
+uitoa(const unsigned int num)
+{
+	size_t digits = 0;
+	char   *ret;
+
+	for (unsigned int i = num; i > 0; i = i/10)
+		digits++;
+	if (!digits)
+		digits++;
+
+	if (!(ret = malloc((digits + 1) * sizeof(char))))
+		logwrite("malloc() failed", "Returned NULL pointer", LOG_ERROR, "dwmblocks-kernel");
+
+	snprintf(ret, digits + 1, "%u", num);
+	return ret;
+}
+
+static unsigned int
+getmode(void)
 {
 	FILE *ep;
-	char buffer[64];
+	char buf[BUF_SIZE];
 	int  ret = 0;
 
 	if (!(ep = popen(pmcmd, "r"))) {
-		char log[512];
-
-		sprintf(log, "popen() failed for: %s - %s", pmcmd, strerror(errno));
-		log_string(log, "dwmblocks-battery");
-		exit(errno);
+		logwrite("popen() failed for", pmcmd, LOG_WARN, "dwmblocks-battery");
+		return 0;
 	}
 
-	while (fgets(buffer, sizeof(buffer), ep))
-		if (strstr(buffer, "Current"))
+	while (fgets(buf, sizeof(buf), ep))
+		if (strstr(buf, "Current"))
 			break;
 
-	if (strstr(buffer, "integrated"))
+	if (strstr(buf, "integrated"))
 		ret = 1;
-	else if (strstr(buffer, "hybrid"))
+	else if (strstr(buf, "hybrid"))
 		ret = 2;
-	else if (strstr(buffer, "nvidia"))
+	else if (strstr(buf, "nvidia"))
 		ret = 3;
 
 	pclose(ep);
@@ -46,18 +62,32 @@ get_mode(void)
 }
 
 static void
-execute_button(const int capacity, const char *status)
+execbutton(const unsigned int capacity, const char *status)
 {
 	char *env;
+	char *body = NULL;
+	unsigned int mode;
+
 	
-	env = getenv("BLOCK_BUTTON");
+	if (!(env = getenv("BLOCK_BUTTON")))
+		return;
 
-	if (env && !strcmp(env, "1")) {
-		char body[256];
-		int  mode = get_mode();
+	switch (atoi(env)) {
+	case 1:
+		mode = getmode();
+		strapp(&body, "Battery capacity: ");
+		strapp(&body, uitoa(capacity));
+		strapp(&body, "%\nBattery status: ");
+		strapp(&body, status);
+		strapp(&body, "\nOptimus manager: ");
+		strapp(&body, models[mode]);
 
-		sprintf(body, "Battery capacity: %d%%\nBattery status: %s\nOptimus manager: %s", capacity, status, models[mode]);
 		notify("Power", body, (char*) iconls[mode], NOTIFY_URGENCY_NORMAL, 1);
+		free(body);
+		break;
+		
+	default:
+		break;
 	}
 }
 
@@ -65,34 +95,23 @@ int
 main(void)
 {
 	FILE *fp;
-	int  capacity;
-	char status[64];
+	char status[BUF_SIZE];
+	unsigned int capacity;
 
-	if (!(fp = fopen(cappath, "r"))) {
-		char log[512];
-
-		sprintf(log, "fopen() failed for: %s - %s", cappath, strerror(errno));
-		log_string(log, "dwmblocks-battery");
-		exit(errno);
-	}
+	if (!(fp = fopen(cappath, "r")))
+		logwrite("fopen() failed for", cappath, LOG_ERROR, "dwmblocks-battery");
 
 	fscanf(fp, "%d", &capacity);
 	fclose(fp);
 
-	if (!(fp = fopen(statuspath, "r"))) {
-		char log[512];
+	if (!(fp = fopen(statuspath, "r")))
+		logwrite("fopen() failed for", statuspath, LOG_ERROR, "dwmblocks-battery");
 
-		sprintf(log, "fopen() failed for: %s - %s", statuspath, strerror(errno));
-		log_string(log, "dwmblocks-battery");
-		exit(errno);
-	}
-
-	fgets(status, 64, fp);
+	fgets(status, sizeof(status), fp);
 	fclose(fp);
 
-	while(sanitate_newline(status));
-
-	execute_button(capacity, status);
+	trimtonewl(status);
+	execbutton(capacity, status);
 
 	if(!strcmp(status, "Charging")) {
 		printf(CLR_3 BG_1" "NRM"\n");

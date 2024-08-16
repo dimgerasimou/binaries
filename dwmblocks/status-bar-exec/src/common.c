@@ -325,19 +325,6 @@ notify(const char *summary, const char *body, const char *icon, NotifyUrgency ur
 	free(sum);
 }
 
-int
-sanitate_newline(const char *string)
-{
-	char *ptr;
-
-	if ((ptr = strchr(string, '\n'))) {
-		*ptr = '\0';
-		return 1;
-	}
-
-	return 0;
-}
-
 char*
 strapp(char **dest, const char *src)
 {
@@ -362,4 +349,17 @@ strapp(char **dest, const char *src)
 	strncat(str, src, strlen(src));
 	*dest = str;
 	return *dest;
+}
+
+int
+trimtonewl(const char *string)
+{
+	char *ptr;
+
+	if ((ptr = strchr(string, '\n'))) {
+		*ptr = '\0';
+		return 1;
+	}
+
+	return 0;
 }

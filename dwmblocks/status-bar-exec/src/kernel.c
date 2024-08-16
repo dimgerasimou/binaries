@@ -11,7 +11,7 @@
 #define BUF_SIZE 64
 
 const char *updatecmdpath   = "/usr/local/bin/st";
-const char *updatecmdargs[] = {"st", "-t", "System Upgrade", "-e", "sh", "-c", "paru", NULL};
+const char *updatecmdargs[] = {"st", "-t", "System Upgrade", "-e", "sh", "-c", "echo \"Upgrading system\" && paru", NULL};
 const char *aurupdatescmd   = "/bin/paru -Qua";
 const char *pmupdatescmd    = "/bin/checkupdates";
 

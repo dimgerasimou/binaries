@@ -63,7 +63,7 @@ clipboard_delete(void)
 		fgets(path, sizeof(path), ep);
 		pclose(ep);
 
-		sanitate_newline(path);
+		trimtonewl(path);
 
 		directory_delete_files(path);
 

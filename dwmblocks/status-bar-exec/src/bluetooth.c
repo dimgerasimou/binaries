@@ -92,7 +92,7 @@ has_audio(void)
 		if (strstr(buffer, "Device")) {
 			ptr = buffer;
 			ptr += 7;
-			sanitate_newline(ptr);
+			trimtonewl(ptr);
 
 			strncpy(mac, ptr, 17);
 

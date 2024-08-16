@@ -67,15 +67,15 @@ void log_string(const char *string, const char *argv0);
 void notify(const char *summary, const char *body, const char *icon, NotifyUrgency urgency, const int format_summary);
 
 /*
- * Removes a single '\n' character from the string.
- * Returns 1 if it removes any.
- */
-int sanitate_newline(const char *string);
-
-/*
  * Works exactly as strcat but with
  * the destination allocated in the heap.
  */
 char* strapp(char **dest, const char *src);
+
+/*
+ * Trims the string up to the first '\n' character.
+ * Returns 1 if it removes any.
+ */
+int trimtonewl(const char *string);
 
 #endif /* COMMON_H */
