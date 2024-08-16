@@ -11,7 +11,7 @@
 
 #include "../include/common.h"
 
-const char *log_path[] = {"$HOME", "window-manager.log", NULL};
+const char *logpath[] = {"$HOME", "window-manager.log", NULL};
 
 /* file specific functions */
 
@@ -283,7 +283,7 @@ log_string(const char *string, const char *argv0)
 	struct tm *timeinfo;
 	char      *path;
 
-	path = get_path((char**) log_path, 1);
+	path = get_path((char**) logpath, 1);
 
 	if (!(fp = fopen(path, "a"))) {
 		fprintf(stderr, "Failed to open in append mode, path: %s - %s\n", path, strerror(errno));
