@@ -6,10 +6,10 @@
 int
 main(void)
 {
-	time_t     ct = time(NULL);
-	struct tm* lt = localtime(&ct);
+	struct tm* lt;
+	time_t ct = time(NULL);
 
+	lt = localtime(&ct);
 	printf(CLR_7"   %.2d:%.2d"NRM"\n", lt->tm_hour, lt->tm_min);
-
 	return 0;
 }

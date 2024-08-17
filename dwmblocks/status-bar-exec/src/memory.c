@@ -1,4 +1,3 @@
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,19 +10,15 @@ const char *htoppath[] = {"usr", "local", "bin", "st", NULL};
 const char *htopargs[] = {"st", "-e", "sh", "-c", "htop", NULL};
 
 static long
-calculate_used(void)
+calculateused(void)
 {
 	FILE *fp;
 	char buffer[128];
 	char *ptr;
 	long used=0, temp;
 
-	if (!(fp = fopen("/proc/meminfo", "r"))) {
-		char log[256];
-
-		sprintf(log, "fopen() failed for: /proc/meminfo - %s", strerror(errno));
-		exit(errno);
-	}
+	if (!(fp = fopen("/proc/meminfo", "r")))
+		logwrite("fopen() failed for", "/proc/meminfo", LOG_ERROR, "dwmblocks-memory");
 
 	while (fgets(buffer, sizeof(buffer), fp)) {
 		if (strstr(buffer, "MemTotal")) {
@@ -60,24 +55,30 @@ calculate_used(void)
 }
 
 static void
-execute_button(void)
+execbutton(void)
 {
 	char *env;
 	char *path;
 
-	env = getenv("BLOCK_BUTTON");
+	if (!(env = getenv("BLOCK_BUTTON")))
+		return;
 
-	if (env && !strcmp(env, "2")) {
+	switch(atoi(env)) {
+	case 2:
 		path = get_path((char**) htoppath, 1);
-		forkexecv(path, (char**)htopargs, "dwmblocks-memory");
+		forkexecv(path, (char**) htopargs, "dwmblocks-memory");
 		free(path);
+		break;
+	
+	default:
+		break;
 	}
 }
 
 int
 main(void)
 {
-	execute_button();
-	printf(CLR_3"   %.1lfGiB"NRM"\n", ((calculate_used())/1024.0)/1024.0);
+	execbutton();
+	printf(CLR_3"   %.1lfGiB"NRM"\n", ((calculateused())/1024.0)/1024.0);
 	return 0;
 }

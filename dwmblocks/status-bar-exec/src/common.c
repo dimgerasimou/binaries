@@ -70,17 +70,14 @@ forkexecv(const char *path, char **args, const char *argv0)
 {
 	switch (fork()) {
 	case -1:
-		log_string("fork() failed", argv0);
-		exit(errno);
+		logwrite("fork() failed", NULL, LOG_ERROR, argv0);
+		break;
 
 	case 0:
 		setsid();
 		execv(path, args);
-
-		char log[512];
-		sprintf(log, "forkexecv() failed for: %s - %s", args[0], strerror(errno));
-		log_string(log, argv0);
-		exit(errno);
+		logwrite("execv() failed for", "args[0]", LOG_ERROR, argv0);
+		break;
 
 	default:
 		break;

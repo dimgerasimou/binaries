@@ -22,4 +22,4 @@
 #define BG_1 "^b#313244^"
 #define NRM "^d^"
 
-#endif   /* COLORSCHEME */
+#endif /* COLORSCHEME */
