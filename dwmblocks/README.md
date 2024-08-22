@@ -9,11 +9,11 @@ dwm with nerd font support and status2d patch (git)
 
 ### Usage
 
-Reports the battery level, status and the power manager's status. (Need to be selected before compile time);
+Reports the battery level, status and the power manager's status.
 
 ### Dependencies
 
-- optimus-manager or envy (both are optional, disable in .c file)
+- optimus-manager
 
 ## bluetooth
 
@@ -47,8 +47,9 @@ Returns state as an icon, can notify about connection settings or optionaly laun
 ### Dependencies
 
 - st
+- libnm (compile time)
 - network-manager
-- dmenu-wifiprompt (in this repo)
+- dmenu-wifi-prompt (in this repo)
 
 ## kernel
 
@@ -73,6 +74,7 @@ Compile time:
 
 - libx11
 - libxkbcommon
+- keyboard.sh (in this repo)
 
 ## memory
 
@@ -113,11 +115,10 @@ No dependecies.
 
 ### Usage
 
-Returns current volume and state, notifies it along the default sources info. Can launch pulsemixer, or easyeffects.
+Returns current volume and state, notifies it along the default source's and sink's info. Can launch easyeffects and can change volume or mute.
 
 ### Dependencies
 
-- wireplumber
-- st
 - audiocontrol (in this repo)
 - easyeffects
+- libpulse (compile time)

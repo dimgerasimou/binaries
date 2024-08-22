@@ -11,7 +11,7 @@
 const char *nicarr[]   = {"x", "tdenetworkmanager", "wifi-radar"};
 const char *icarr[]    = {CLR_9"󰤮  "NRM, CLR_6"  "NRM, CLR_6"󰤯  "NRM, CLR_6"󰤟  "NRM, CLR_6"󰤢  "NRM, CLR_6"󰤥  "NRM, CLR_6"󰤨  "NRM, CLR_9"󰤫  "NRM};
 const char *nmpath[]   = {"usr", "local", "bin", "st", NULL};
-const char *nmargs[]   = {"st", "-e", "nmtui", NULL};
+const char *nmargs[]   = {"st", "-t", "Network Configuration", "-e", "nmtui", NULL};
 const char *wifipath[] = {"$HOME", ".local", "bin", "dmenu", "dmenu-wifi-prompt", NULL};
 const char *wifiargs[] = {"dmenu-wifi-prompt", NULL};
 

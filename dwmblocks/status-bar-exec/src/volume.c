@@ -68,17 +68,17 @@ execbutton(AudioInfo **a)
 
 	switch (atoi(env)) {
 	case 1:
-		path = get_path((char**) acpath, 1);
-		forkexecv(path, (char**) volmut, "dwmblocks-volume");
-		free(path);
+		propnotify(a);
 		break;
-		
+
 	case 2:
 		forkexecv("/usr/bin/easyeffects", (char**) easyeffectsargs, "dwmblocks-volume");
 		break;
 
 	case 3:
-		propnotify(a); 
+		path = get_path((char**) acpath, 1);
+		forkexecv(path, (char**) volmut, "dwmblocks-volume");
+		free(path);
 		break;
 
 	case 4:
