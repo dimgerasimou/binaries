@@ -123,21 +123,21 @@ getactive(NMClient *c)
 		acdev = nm_active_connection_get_devices(ac);
 
 		if (!acdev || acdev->len < 1) {
-			logwrite("Wifi active devices less than 1", NULL, LOG_WARN, "dwmblocks-internet");
+			logwrite("Wifi active devices less than 1", NULL, LOG_INFO, "dwmblocks-internet");
 			return 7;
 		}
 
 		dev = NM_DEVICE_WIFI(g_ptr_array_index(acdev, 0));
 
 		if (!dev) {
-			logwrite("Could not fetch wifi device", NULL, LOG_WARN, "dwmblocks-internet");
+			logwrite("Could not fetch wifi device", NULL, LOG_INFO, "dwmblocks-internet");
 			return 7;
 		}
 
 		ap = nm_device_wifi_get_active_access_point(dev);
 
 		if (!ap) {
-			logwrite("Could not fetch active access point", NULL, LOG_WARN, "dwmblocks-internet");
+			logwrite("Could not fetch active access point", NULL, LOG_INFO, "dwmblocks-internet");
 			return 7;
 		}
 
@@ -180,7 +180,7 @@ printinfo(NMClient *c, const int ind)
 		dev = g_ptr_array_index(devarr, i);
 
 		if (!dev) {
-			logwrite("Failed to fetch a device", NULL, LOG_WARN, "dwmblocks-internet");
+			logwrite("Failed to fetch a device", NULL, LOG_INFO, "dwmblocks-internet");
 			return;
 		}
 

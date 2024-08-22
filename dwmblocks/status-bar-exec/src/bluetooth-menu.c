@@ -246,7 +246,7 @@ int main(void) {
 			togglebt();
 			break;
 		case 1:
-			connect();	
+			connect();
 			break;
 		case 2:
 			disconnect();

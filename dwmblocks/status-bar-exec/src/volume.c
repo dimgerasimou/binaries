@@ -1,122 +1,280 @@
-#include <libnotify/notification.h>
+#include <math.h>
+#include <pulse/pulseaudio.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+
 #include "../include/colorscheme.h"
 #include "../include/common.h"
 
-int getaudioprop(int *muted) {
-	FILE *ep;
-	char buffer[64];
-	int num;
+typedef struct {
+	unsigned int volume;
+	unsigned int mute;
+	unsigned int done;
+} AudioInfo;
 
-	if ((ep = popen("wpctl get-volume @DEFAULT_AUDIO_SINK@", "r")) == NULL) {
-		perror("Failed to execute wpctl");
-		exit(EXIT_FAILURE);
-	}
+static pa_mainloop *ml = NULL;
+static pa_context *ctx = NULL;
+static pa_mainloop_api *mlapi = NULL;
 
-	fgets(buffer, 64, ep);
-	if (strstr(buffer, "MUTED") != NULL)
-		*muted = 1;
-	else
-		*muted = 0;
-	if (strlen(buffer) > 3)
-		num = (buffer[8] - '0') * 100 + (buffer[10] - '0') * 10 + (buffer[11] - '0');
-	else
-		num = 0;
-	pclose(ep);
-	return num;
-}
+const char *easyeffectsargs[] = {"easyeffects", NULL};
+const char *volinc[] = {"audiocontrol", "sink", "increase", NULL};
+const char *voldec[] = {"audiocontrol", "sink", "decrease", NULL};
+const char *volmut[] = {"audiocontrol", "sink", "mute", NULL};
+const char *acpath[]= { "$HOME", ".local", "bin", "dwm", "audiocontrol", NULL};
 
-void notifyproperties(int volume, int muted) {
-	FILE *ep;
-	char buffer[64];
-	int micvol;
-	int micmuted;
+static void contextcb(pa_context *c, void *userdata);
+static void execbutton(AudioInfo **a);
+static void freeainfo(AudioInfo ***a);
+static void freepa(void);
+static AudioInfo** getaudioinfo(void);
+static AudioInfo** initainfo(void);
+static void initpa(void);
+static void propnotify(AudioInfo **a);
+static void servercb(pa_context *c, const pa_server_info *i, void *userdata);
+static void sinkcb(pa_context *c, const pa_sink_info *i, int eol, void *userdata);
+static void sourcecb(pa_context *c, const pa_source_info *i, int eol, void *userdata);
+static void quitml(AudioInfo **a);
 
-	if ((ep = popen("wpctl get-volume @DEFAULT_AUDIO_SOURCE@", "r")) == NULL) {
-		perror("Failed to execute wpctl");
-		exit(EXIT_FAILURE);
-	}
+static void
+contextcb(pa_context *c, void *userdata)
+{
+	pa_operation *o;
 
-	fgets(buffer, 64, ep);
-	if (strstr(buffer, "MUTED") != NULL)
-		micmuted = 1;
-	else
-		micmuted = 0;
-	if (strlen(buffer) > 3)
-		micvol = (buffer[8] - '0') * 100 + (buffer[10] - '0') * 10 + (buffer[11] - '0');
-	else
-		micvol = 0;
-	pclose(ep);
+	switch (pa_context_get_state(c)) {
+	case PA_CONTEXT_READY:
+		if ((o = pa_context_get_server_info(c, servercb, userdata)))
+			pa_operation_unref(o);
+		break;
 	
-	sprintf(buffer, " Volume: %3d%%, Muted?: %d\n Volume: %3d%%, Muted?: %d\n", volume, muted, micvol, micmuted);
-	notify("Wireplumber", buffer, "audio-headphones", NOTIFY_URGENCY_LOW, 1);
+	case PA_CONTEXT_FAILED:
+	case PA_CONTEXT_TERMINATED:
+		pa_mainloop_quit(ml, 1);
+		break;
+
+	default:
+		break;
+	}
 }
 
-void executebutton(int volume, int muted) {
+static void
+execbutton(AudioInfo **a)
+{
 	char *env;
 	char *path;
 
-	const char *easyeffectsargs[] = {"easyeffects", NULL};
-	const char *increasevol[] = {"audiocontrol", "sink", "increase", NULL};
-	const char *decreasevol[] = {"audiocontrol", "sink", "decrease", NULL};
-	const char *toggmutevol[] = {"audiocontrol", "sink", "mute", NULL};
-	const char *audioctrlpath[]= { "$HOME", ".local", "bin", "dwm", "audiocontrol", NULL};
-
-	if ((env = getenv("BLOCK_BUTTON"))== NULL)
+	if (!(env = getenv("BLOCK_BUTTON")))
 		return;
 
-	switch (env[0] - '0') {
-		case 1:
-			path = get_path((char**) audioctrlpath, 1);
-			forkexecv(path, (char**) toggmutevol, "dwmblocks-volume");
-			free(path);
-			break;
-			
-		case 2:
-			forkexecv("/usr/bin/easyeffects", (char**) easyeffectsargs, "dwmblocks-volume");
-			break;
-		case 3:
-			notifyproperties(volume, muted); 
-			break;
-		case 4:
-			path = get_path((char**) audioctrlpath, 1);
-			forkexecv(path, (char**) increasevol, "dwmblocks-volume");
-			free(path);
-			break;
-		case 5:
-			path = get_path((char**) audioctrlpath, 1);
-			forkexecv(path, (char**) decreasevol, "dwmblocks-volume");
-			free(path);
-			break;
-		default:
-			break;
+	switch (atoi(env)) {
+	case 1:
+		path = get_path((char**) acpath, 1);
+		forkexecv(path, (char**) volmut, "dwmblocks-volume");
+		free(path);
+		break;
+		
+	case 2:
+		forkexecv("/usr/bin/easyeffects", (char**) easyeffectsargs, "dwmblocks-volume");
+		break;
+
+	case 3:
+		propnotify(a); 
+		break;
+
+	case 4:
+		path = get_path((char**) acpath, 1);
+		forkexecv(path, (char**) volinc, "dwmblocks-volume");
+		free(path);
+		break;
+
+	case 5:
+		path = get_path((char**) acpath, 1);
+		forkexecv(path, (char**) voldec, "dwmblocks-volume");
+		free(path);
+		break;
+
+	default:
+		break;
 	}
 }
 
+static void
+freeainfo(AudioInfo ***a)
+{
+	if (!*a)
+		return;
 
-int main(void) {
-	int volume;
-	int muted;
-	char icon[8];
+	for (int i = 0; i < 2; i++)
+		if (!*a[i])
+			free(*a[i]);
+	free(*a);
+	*a = NULL;
+}
 
-	volume = getaudioprop(&muted);
-	executebutton(volume, muted);
+static void
+freepa(void)
+{
+	if (ctx) {
+		pa_context_disconnect(ctx);
+		pa_context_unref(ctx);
+	}
+	if (ml) {
+		pa_mainloop_free(ml);
+	}
+}
+
+static AudioInfo**
+getaudioinfo(void)
+{
+	AudioInfo **a = initainfo();
+
+	initpa();
+
+	pa_context_set_state_callback(ctx, contextcb, a);
+	pa_context_connect(ctx, NULL, PA_CONTEXT_NOFLAGS, NULL);
+
+	pa_mainloop_run(ml, NULL);
+
+	freepa();
+	return a;
+}
+
+static AudioInfo**
+initainfo(void)
+{
+	AudioInfo **ret = NULL;
 	
-	if (muted) {
-		strcpy(icon, "");
-	} else if (volume > 66) {
-		strcpy(icon, "");
-	} else if (volume > 33) {
-		strcpy(icon, "");
-	} else {
-		strcpy(icon, "");
+	if (!(ret = malloc(2 * sizeof(AudioInfo*))))
+		logwrite("malloc() failed", NULL, LOG_ERROR, "dwmblocks-volume");
+
+	for (int i = 0; i < 2; i++) {
+		if (!(ret[i] = malloc(sizeof(AudioInfo))))
+			logwrite("malloc() failed", NULL, LOG_ERROR, "dwmblocks-volume");
+
+		ret[i]->mute = 0;
+		ret[i]->done = 0;
+		ret[i]->volume = 0;
 	}
 
-	printf(CLR_2"%s %d%%"NRM"\n", icon, volume);
+	return ret;
+}
+
+static void
+initpa(void)
+{
+	if (!(ml = pa_mainloop_new()))
+		logwrite("pa_mainloop_new() failed to initialize", NULL, LOG_ERROR, "dwmblocks-volume");
+	if (!(mlapi = pa_mainloop_get_api(ml)))
+		logwrite("pa_mainloop_get_api() failed to initialize", NULL, LOG_ERROR, "dwmblocks-volume");
+	if (!(ctx = pa_context_new(mlapi, "dwmblocks-volume")))
+		logwrite("pa_context_new() failed to initialize", NULL, LOG_ERROR, "dwmblocks-volume");
+}
+
+static void
+propnotify(AudioInfo **a)
+{
+	char *buffer = NULL;
+	char temp[64];
+	
+	if (a[0]->done == 1) {
+		snprintf(temp, sizeof(temp), "  Volume: %3d%%, Muted: %s\n",
+		         a[0]->volume, a[0]->mute ? "Yes" : "No");
+	} else {
+		snprintf(temp, sizeof(temp), "No audio sink detected.\n");
+	}
+	strapp(&buffer, temp);
+
+	if (a[1]->done == 1) {
+		snprintf(temp, sizeof(temp), "  Volume: %3d%%, Muted: %s\n",
+		         a[1]->volume, a[1]->mute ? "Yes" : "No");
+	} else {
+		snprintf(temp, sizeof(temp), "No audio source detected.\n");
+	}
+	strapp(&buffer, temp);
+
+	notify("Audio Properties", buffer, "audio-headphones", NOTIFY_URGENCY_NORMAL, 1);
+	free(buffer);
+}
+
+static void
+servercb(pa_context *c, const pa_server_info *i, void *userdata)
+{
+	pa_operation *o;
+
+	if((o = pa_context_get_sink_info_by_name(c, i->default_sink_name, sinkcb, userdata)))
+		pa_operation_unref(o);
+	if((o = pa_context_get_source_info_by_name(c, i->default_source_name, sourcecb, userdata)))
+		pa_operation_unref(o);
+}
+
+static void
+sinkcb(pa_context __attribute__((__unused__)) *c, const pa_sink_info *i, int eol, void *userdata)
+{
+	AudioInfo **a = (AudioInfo**) userdata;
+
+	if (eol > 0)
+		return;
+	if (!i) {
+		a[0]->done = 2;
+		return;
+	}
+
+	pa_volume_t volume = pa_cvolume_avg(&i->volume);
+	a[0]->volume = round((volume * 100.0) / PA_VOLUME_NORM);
+	a[0]->mute = i->mute;
+
+	a[0]->done = 1;
+	quitml(a);
+}
+
+static void
+sourcecb(pa_context __attribute__((__unused__)) *c, const pa_source_info *i, int eol, void *userdata)
+{
+	AudioInfo **a = (AudioInfo**) userdata;
+
+	if (eol > 0)
+		return;
+	if (!i) {
+		a[1]->done = 2;
+		return;
+	}
+
+	pa_volume_t volume = pa_cvolume_avg(&i->volume);
+	a[1]->volume = round((volume * 100.0) / PA_VOLUME_NORM);
+	a[1]->mute = i->mute;
+
+	a[1]->done = 1;
+	quitml(a);
+}
+
+static void
+quitml(AudioInfo **a)
+{
+	if (a[0]->done && a[1]->done)
+		pa_mainloop_quit(ml, 0);
+}
+
+int
+main(void)
+{
+	AudioInfo **a;
+	char s[16];
+
+	a = getaudioinfo();
+	execbutton(a);
+	
+	if (a[0]->mute || a[0]->done != 1) {
+		strcpy(s, " ");
+	} else if (a[0]->volume > 66) {
+		snprintf(s, sizeof(s), "  %d%%", a[0]->volume);
+	} else if (a[0]->volume > 33) {
+		snprintf(s, sizeof(s), " %d%%", a[0]->volume);
+	} else {
+		snprintf(s, sizeof(s), " %d%%", a[0]->volume);
+	}
+
+	freeainfo(&a);
+
+	printf(CLR_2"%s"NRM"\n", s);
 	return 0;
 }
-	
-

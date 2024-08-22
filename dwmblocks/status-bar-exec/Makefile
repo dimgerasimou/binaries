@@ -1,10 +1,9 @@
 # dwmblocks status bar executable blocks
 
-
 PREFIX    := ${HOME}/.local/bin/dwmblocks
 CC        := cc
 CFLAGS    := -Wall -Wextra -Werror -Wno-deprecated-declarations -Os
-LFLAGS    := -lm -lX11 -lxkbfile `pkg-config --cflags --libs libnotify libnm`
+LFLAGS    := -lm -lX11 -lxkbfile `pkg-config --cflags --libs libnotify libnm libpulse`
 
 
 BIN = time bluetooth-menu keyboard battery date kernel bluetooth internet memory power volume
