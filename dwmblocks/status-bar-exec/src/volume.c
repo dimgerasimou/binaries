@@ -17,18 +17,18 @@ static pa_mainloop *ml = NULL;
 static pa_context *ctx = NULL;
 static pa_mainloop_api *mlapi = NULL;
 
-const char *easyeffectsargs[] = {"easyeffects", NULL};
+const char *eeargs[] = {"easyeffects", NULL};
 const char *volinc[] = {"audiocontrol", "sink", "increase", NULL};
 const char *voldec[] = {"audiocontrol", "sink", "decrease", NULL};
 const char *volmut[] = {"audiocontrol", "sink", "mute", NULL};
-const char *acpath[]= { "$HOME", ".local", "bin", "dwm", "audiocontrol", NULL};
+const char *acpath[] = { "$HOME", ".local", "bin", "dwm", "audiocontrol", NULL};
 
 static void contextcb(pa_context *c, void *userdata);
 static void execbutton(AudioInfo **a);
-static void freeainfo(AudioInfo ***a);
+static void freeaudioinfo(AudioInfo ***a);
 static void freepa(void);
 static AudioInfo** getaudioinfo(void);
-static AudioInfo** initainfo(void);
+static AudioInfo** initaudioinfo(void);
 static void initpa(void);
 static void propnotify(AudioInfo **a);
 static void servercb(pa_context *c, const pa_server_info *i, void *userdata);
@@ -72,7 +72,7 @@ execbutton(AudioInfo **a)
 		break;
 
 	case 2:
-		forkexecv("/usr/bin/easyeffects", (char**) easyeffectsargs, "dwmblocks-volume");
+		forkexecv("/usr/bin/easyeffects", (char**) eeargs, "dwmblocks-volume");
 		break;
 
 	case 3:
@@ -99,7 +99,7 @@ execbutton(AudioInfo **a)
 }
 
 static void
-freeainfo(AudioInfo ***a)
+freeaudioinfo(AudioInfo ***a)
 {
 	if (!*a)
 		return;
@@ -126,7 +126,7 @@ freepa(void)
 static AudioInfo**
 getaudioinfo(void)
 {
-	AudioInfo **a = initainfo();
+	AudioInfo **a = initaudioinfo();
 
 	initpa();
 
@@ -140,7 +140,7 @@ getaudioinfo(void)
 }
 
 static AudioInfo**
-initainfo(void)
+initaudioinfo(void)
 {
 	AudioInfo **ret = NULL;
 	
@@ -201,9 +201,9 @@ servercb(pa_context *c, const pa_server_info *i, void *userdata)
 {
 	pa_operation *o;
 
-	if((o = pa_context_get_sink_info_by_name(c, i->default_sink_name, sinkcb, userdata)))
+	if ((o = pa_context_get_sink_info_by_name(c, i->default_sink_name, sinkcb, userdata)))
 		pa_operation_unref(o);
-	if((o = pa_context_get_source_info_by_name(c, i->default_source_name, sourcecb, userdata)))
+	if ((o = pa_context_get_source_info_by_name(c, i->default_source_name, sourcecb, userdata)))
 		pa_operation_unref(o);
 }
 
@@ -216,6 +216,7 @@ sinkcb(pa_context __attribute__((__unused__)) *c, const pa_sink_info *i, int eol
 		return;
 	if (!i) {
 		a[0]->done = 2;
+		quitml(a);
 		return;
 	}
 
@@ -236,6 +237,7 @@ sourcecb(pa_context __attribute__((__unused__)) *c, const pa_source_info *i, int
 		return;
 	if (!i) {
 		a[1]->done = 2;
+		quitml(a);
 		return;
 	}
 
@@ -273,7 +275,7 @@ main(void)
 		snprintf(s, sizeof(s), " %d%%", a[0]->volume);
 	}
 
-	freeainfo(&a);
+	freeaudioinfo(&a);
 
 	printf(CLR_2"%s"NRM"\n", s);
 	return 0;
