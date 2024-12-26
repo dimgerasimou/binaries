@@ -11,7 +11,7 @@
 
 #include "../include/common.h"
 
-const char *logpath[] = {"$HOME", "window-manager.log", NULL};
+const char *LOG_PATH[] = {"$HOME", "window-manager.log", NULL};
 
 /* file specific functions */
 
@@ -226,46 +226,63 @@ killstr(const char *procname, const int signo, const char *argv0)
 }
 
 void
-logwrite(const char *log, const char *name, const log_level level, const char *argv0)
+logwrite(const char *message, const char *name, const log_level level, const char *argv0)
 {
-	char *str = NULL;
-	unsigned short int err = errno;
+	struct tm *time_info = NULL;
+	time_t    raw_time   = 0;
+	FILE      *fp        = NULL;
+	char      *path  = NULL;
+	uint      err = errno;
+
+	if (!message)
+		return;
+
+	path = get_path((char**) LOG_PATH, 1);
+	fp = fopen(path, "a");
+
+	if (!fp) {
+		fprintf(stderr, "dwmblocks - fopen() failed for path: %s - %s\n", path, strerror(errno));
+		return;
+	}
+
+	time(&raw_time);
+	time_info = localtime(&raw_time);
+
+	fprintf(fp, "[%d-%02d-%02d %02d:%02d:%02d] ", time_info->tm_year+1900,
+	        time_info->tm_mon+1, time_info->tm_mday, time_info->tm_hour,
+	        time_info->tm_min, time_info->tm_sec);
 
 	switch (level) {
-	case LOG_SILLY:
-		strapp(&str, "");
-		break;
-
 	case LOG_INFO:
-		strapp(&str, "INFO - ");
+		fprintf(fp, "[INFO]         ");
 		break;
 
 	case LOG_WARN:
-		strapp(&str, "WARN - ");
+		fprintf(fp, "[WARN]         ");
 		break;
 
 	case LOG_ERROR:
-		strapp(&str, "ERROR - ");
+		fprintf(fp, "[ERROR] [E%3d] ", err);
 		break;
 
+	case LOG_FATAL:
+		fprintf(fp, "[FATAL] [E%3d] ", err);
+		break;
 	default:
+		fprintf(fp, "               ");
 		break;
 	}
 
-	strapp(&str, log);
-	if (name) {
-		strapp(&str, " - ");
-		strapp(&str, name);
-	}
+	fprintf(fp, "[%s] %s", argv0, message);
 
-	if (level > LOG_INFO) {
-		strapp(&str, " - ");
-		strapp(&str, strerror(err));
-	}
+	if (name) fprintf(fp, " '%s'", name);
 
-	log_string(str, argv0);
-	free(str);
-	if (level == LOG_ERROR)
+	fprintf(fp, "\n");
+
+	fclose(fp);
+	free(path);
+
+	if (level == LOG_FATAL)
 		exit(err);
 }
 
@@ -280,7 +297,7 @@ log_string(const char *string, const char *argv0)
 	struct tm *timeinfo;
 	char      *path;
 
-	path = get_path((char**) logpath, 1);
+	path = get_path((char**) LOG_PATH, 1);
 
 	if (!(fp = fopen(path, "a"))) {
 		fprintf(stderr, "Failed to open in append mode, path: %s - %s\n", path, strerror(errno));

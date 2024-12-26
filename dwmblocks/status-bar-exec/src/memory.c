@@ -6,21 +6,23 @@
 #include "../include/colorscheme.h"
 #include "../include/common.h"
 
-const char *htoppath[] = {"usr", "local", "bin", "st", NULL};
-const char *htopargs[] = {"st", "-e", "sh", "-c", "htop", NULL};
+const char *HTOP_PATH[] = { "usr", "local", "bin", "st", NULL };
+const char *HTOP_ARGS[] = { "st", "-e", "sh", "-c", "htop", NULL };
 
 static long
-calculateused(void)
+get_used_memory(void)
 {
-	FILE *fp;
-	char buffer[128];
-	char *ptr;
-	long used=0, temp;
+	char  buffer[128];
+	FILE *fp   = NULL;
+	char *ptr  = NULL;
+	long  used = 0;
+	long  temp = 0;
 
 	if (!(fp = fopen("/proc/meminfo", "r")))
-		logwrite("fopen() failed for", "/proc/meminfo", LOG_ERROR, "dwmblocks-memory");
+		logwrite("fopen() failed for", "/proc/meminfo", LOG_FATAL, "dwmblocks-memory");
 
 	while (fgets(buffer, sizeof(buffer), fp)) {
+
 		if (strstr(buffer, "MemTotal")) {
 			ptr = (strchr(buffer, ':')) + 1;
 			sscanf(ptr, "%ld", &temp);
@@ -55,20 +57,22 @@ calculateused(void)
 }
 
 static void
-execbutton(void)
+exec_block_button(void)
 {
-	char *env;
-	char *path;
+	char *env = NULL;
 
 	if (!(env = getenv("BLOCK_BUTTON")))
 		return;
 
 	switch(atoi(env)) {
 	case 2:
-		path = get_path((char**) htoppath, 1);
-		forkexecv(path, (char**) htopargs, "dwmblocks-memory");
+	{
+		char *path = get_path((char**) HTOP_PATH, 1);
+
+		forkexecv(path, (char**) HTOP_ARGS, "dwmblocks-memory");
 		free(path);
 		break;
+	}
 	
 	default:
 		break;
@@ -78,7 +82,7 @@ execbutton(void)
 int
 main(void)
 {
-	execbutton();
-	printf(CLR_3"   %.1lfGiB"NRM"\n", ((calculateused())/1024.0)/1024.0);
+	exec_block_button();
+	printf(CLR_3"   %.1lfGiB"NRM"\n", ((get_used_memory())/1024.0)/1024.0);
 	return 0;
 }

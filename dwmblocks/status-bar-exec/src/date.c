@@ -7,135 +7,161 @@
 #include "../include/colorscheme.h"
 #include "../include/common.h"
 
-const char *months[] = {"January",    "February", "March",    "April",
+#define BUFFER_SIZE 64
+
+const char *MONTHS[] = {"January",    "February", "March",    "April",
                         "May",        "June",     "July",     "August",
                         "Semptember", "October",  "November", "December"};
 
-const int  daysinmonth[]  = {31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-const char *firefoxpath[] = {"usr", "bin", "firefox", NULL};
-const char *firefoxcmd[]  = {"firefox", "--new-window", "https://calendar.google.com", NULL};
+const int   DAYS_IN_MONTH[] = {31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+const char *CAL_PATH[]      = {"usr", "bin", "firefox", NULL};
+const char *CAL_ARGS[]      = {"firefox", "--new-window", "https://calendar.google.com", NULL};
 
 static int
-first_day_in_month(int month_day, int week_day)
+get_first_day(int mday, int wday)
 {
-	while (month_day > 7)
-		month_day -= 7;
+	while (mday > 7)
+		mday -= 7;
 
-	while (month_day > 1) {
-		month_day--;
-		week_day--;
-		if (week_day == -1)
-			week_day = 6;
+	while (mday > 1) {
+		mday--;
+		wday--;
+		if (wday == -1)
+			wday = 6;
 	}
 
-	week_day--;
-	if (week_day == -1)
-		week_day = 6;
+	wday--;
+	if (wday == -1)
+		wday = 6;
 
-	return week_day;
+	return wday;
 }
 
 static int
-get_month_days(const int month, const int year)
+get_month_days(const int m, const int y)
 {
-	if (month != 1)
-		return daysinmonth[month];
-	if ((year % 4 == 0 && year % 100 != 0) || year % 400 == 0)
+	if (m != 1)
+		return DAYS_IN_MONTH[m];
+	if ((y % 4 == 0 && y % 100 != 0) || y % 400 == 0)
 		return 29;
 
 	return 28;
 }
 
 static char*
-get_calendar(const int month_day, const int week_day, const int month, const int year)
+get_calendar(const int mday, const int wday, const int m, const int y)
 {
-	int  firstday;
-	int  monthdays;
-	char day[64];
-	char calendar[512];
-	char *ret;
+	char buf[BUFFER_SIZE];
+	char *ret     = NULL;
+	int  fday     = 0;
+	int  daysm    = 0;
+	int  sn_check = 0;
 
-	firstday  = first_day_in_month(month_day, week_day);
-	monthdays = get_month_days(month, year);
+	fday  = get_first_day(mday, wday);
+	daysm = get_month_days(m, y);
+	ret   = strdup("Mo Tu We Th Fr <span color='#F38BA8'>Sa Su</span>\n");
 
-	strcpy(calendar, "Mo Tu We Th Fr <span color='#F38BA8'>Sa Su</span>\n");
+	for (int i = 0; i < fday; i++)
+		strapp(&ret, "   ");
 
-	for (int i = 0; i < firstday; i++)
-		strcat(calendar, "   ");
-
-	for (int i = 1; i <= monthdays; i++) {
-		if (i == month_day)
-			sprintf(day, "<span color='black' bgcolor='#F38BA8'>%2d</span> ", i);
-		else if (firstday == 5 || firstday == 6)
-			sprintf(day, "<span color='#F38BA8'>%2d</span> ", i);
-		else
-			sprintf(day, "%2d ", i);
-
-		if (firstday == 7) {
-			firstday = 0;
-			strcat(calendar, "\n");
+	for (int i = 1; i <= daysm; i++) {
+		if (fday == 7) {
+			fday = 0;
+			strapp(&ret, "\n");
 		}
 
-		strcat(calendar, day);
-		firstday++;
+		if (i == mday)
+			sn_check = snprintf(buf, sizeof(buf), "<span color='black' bgcolor='#F38BA8'>%2d</span> ", i);
+		else if (fday == 5 || fday == 6)
+			sn_check = snprintf(buf, sizeof(buf), "<span color='#F38BA8'>%2d</span> ", i);
+		else
+			sn_check = snprintf(buf, sizeof(buf), "%2d ", i);
+
+		if (sn_check > (int) sizeof(buf) - 1) {
+			logwrite("snprintf() buffer overflow", NULL, LOG_ERROR, "dwmblocks-calendar");
+			if (ret)
+				free(ret);
+
+			return NULL;
+		}
+
+		strapp(&ret, buf);
+		fday++;
 	}
 
-	ret = malloc((strlen(calendar) + 1) * sizeof(char));
-	strcpy(ret, calendar);
 	return ret;
 }
 
 static char*
-get_summary(const int month, const int year)
+get_summary(const int m, const int y)
 {
-	char *ret;
-	char summary[16];
-	int  total_size;
+	char buf[BUFFER_SIZE];
+	int  size     = 0;
+	int  sn_check = 0;
 
-	sprintf(summary, "%s %d", months[month], year);
-	total_size = (20 + strlen(summary)) / 2;
+	size = (15 + strlen(MONTHS[m])) / 2;
 
-	ret = malloc((total_size + 1) * sizeof(char));
-	sprintf(ret, "%*s", total_size, summary);
-	return ret;
+	sn_check = snprintf(buf, sizeof(buf), "%*s %d", size, MONTHS[m], y);
+
+	if (sn_check > (int) sizeof(buf) - 1) {
+		logwrite("snprintf() buffer overflow", NULL, LOG_ERROR, "dwmblocks-date");
+		return NULL;
+	}
+
+	return strdup(buf);
 }
 
 static void
-exec_calendar(const int month_day, const int week_day, const int month, const int year)
+print_calendar(void)
 {
-	char *body;
-	char *summary;
+	struct tm *lt   = NULL;
+	char      *body = NULL;
+	char      *sum  = NULL;
+	time_t     ct   = 0;
 
-	body    = get_calendar(month_day, week_day, month, year);
-	summary = get_summary(month, year);
+	ct = time(NULL);
+	lt = localtime(&ct);
 
-	notify(summary, body, "calendar", NOTIFY_URGENCY_NORMAL, 0);
+	body = get_calendar(lt->tm_mday, lt->tm_wday, lt->tm_mon, lt->tm_year + 1900);
+	sum  = get_summary(lt->tm_mon, lt->tm_year + 1900);
+
+	if (!body || !sum) {
+		if (body)
+			free(body);
+		if (sum)
+			free(sum);
+		return;
+	}
+
+	notify(sum, body, "calendar", NOTIFY_URGENCY_NORMAL, 0);
 
 	free(body);
-	free(summary);
+	free(sum);
 }
 
 static void
-executebutton(const int month_day, const int week_day, const int month, const int year)
+exec_block_button(void)
 {
-	char *env;
-	char *path;
+	char *env = NULL;
 
 	if (!(env = getenv("BLOCK_BUTTON")))
 		return;
 
-	switch (env[0] - '0') {
+	switch (atoi(env)) {
 	case 1:
-		exec_calendar(month_day, week_day, month, year);
+		print_calendar();
 		return;
 
 	case 3:
-		path = get_path((char**) firefoxpath, 1);
+	{
+		char *path;
 
-		forkexecv(path, (char **) firefoxcmd, "dwmblocks-date");
+		path = get_path((char**) CAL_PATH, 1);
+		forkexecv(path, (char **) CAL_ARGS, "dwmblocks-date");
 
 		free(path);
 		return;
+	}
 
 	default:
 		break;
@@ -145,13 +171,15 @@ executebutton(const int month_day, const int week_day, const int month, const in
 int
 main()
 {
-	time_t    currentTime = time(NULL);
-	struct tm *localTime  = localtime(&currentTime);
+	struct tm *lt = NULL;
+	time_t     ct = 0;
 
-	executebutton(localTime->tm_mday, localTime->tm_wday, localTime->tm_mon,
-	              localTime->tm_year + 1900);
+	exec_block_button();
+	
+	ct = time(NULL);
+	lt = localtime(&ct);
 
-	printf(CLR_1 "   %02d/%02d" NRM "\n", localTime->tm_mday, ++localTime->tm_mon);
+	printf(CLR_1 "   %02d/%02d" NRM "\n", lt->tm_mday, ++(lt->tm_mon));
 
 	return 0;
 }
