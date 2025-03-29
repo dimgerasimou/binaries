@@ -136,7 +136,8 @@ get_pid_of(const char *process, const char *argv0)
 	ret = 0;
 
 	if (!dir) {
-		log_string("Failed to get /proc directory", argv0);
+		errno = ENOENT;
+		logwrite("opendir() failed for directory", "/proc", LOG_ERROR, argv0);
 		return -ENOENT;
 	}
 
@@ -151,12 +152,21 @@ get_pid_of(const char *process, const char *argv0)
 		if (!fgets(buffer, sizeof(buffer), fp))
 			continue;
 		if ((strcmp(buffer, process) == 0)) {
-			ret = ret ? -EEXIST : (pid_t)pid;
+			ret = ret ? -EEXIST : (pid_t) pid;
 		}
 	}
 
 	closedir(dir);
-	return ret ? ret : -ENOENT;
+
+	if (ret == -EEXIST) {
+		errno = EEXIST;
+		return -EEXIST;
+	} else if (ret == 0) {
+		errno = ENOENT;
+		return -ENOENT;
+	}
+
+	return ret;
 }
 
 int
@@ -171,14 +181,13 @@ get_xmenu_option(const char *menu, const char *argv0)
 	buffer[0] = '\0';
 
 	if (pipe(writepipe) < 0 || pipe(readpipe) < 0) {
-		log_string("Failed to initialize pipes", argv0);
-		return -ESTRPIPE;
+		logwrite("pipe() failed", NULL, LOG_FATAL, argv0);
 	}
 	
 	switch (fork()) {
 		case -1:
-			log_string("fork() failed", argv0);
-			return -ECHILD;
+			logwrite("fork() failed", NULL, LOG_FATAL, argv0);
+			break;
 
 		case 0: /* child - xmenu */
 			close(writepipe[1]);

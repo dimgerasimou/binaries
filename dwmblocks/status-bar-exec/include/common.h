@@ -43,7 +43,7 @@ int get_xmenu_option(const char *menu, const char *argv0);
  * Sends the given signal to the process with the given name.
  * Returns the pid of the process or error as in get_pid_of().
  */
-int killstr(const char *procname, const int signo, const char *argv0);
+//int killstr(const char *procname, const int signo, const char *argv0);
 
 /*
  * Writes a log to the file defined by log_path with a timestamp
@@ -60,7 +60,7 @@ void logwrite(const char *log, const char *name, const log_level level, const ch
  * Logs the string in the file defined by log_path global variable,
  * with a timestamp and the argv0 of the caller.
  */
-void log_string(const char *string, const char *argv0);
+//void log_string(const char *string, const char *argv0);
 
 /*
  * Sends a desktop notification with the given arguments.

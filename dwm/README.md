@@ -60,25 +60,6 @@ Compile time:
 
 This is simply a desktop entry for dwm, to be copied in the `xsessions` folder for dwm support with login managers.
 
-## autostart.sh
-
-### Usage
-
-Is as it seams, is an autostart script for dwm.
-
-### Dependencies
-
-- picom
-- xrandr (from this repo)
-- easyeffects
-- audiocontrol (from this repo)
-- feh
-- mate-polkit
-- dwmblocks
-- xautolock
-- dunst
-- clipmenud
-
 ## layoutmenu
 
 ### Usage

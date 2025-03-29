@@ -95,14 +95,20 @@ static void
 restart_dwmblocks(void)
 {
 	char *path = NULL;
+	int pid = 0;
 
 	path = get_path((char**) PATH_DWMBLOCKS, 1);
 
-	if (killstr("dwmblocks", SIGTERM, "dwmblocks-power") < 0) {
-		if (killstr(path, SIGTERM, "dwmblocks-power") < 0)
-			logwrite("Failed getting the pID of", path, LOG_ERROR, "dwmblocks-power");
+	if ((pid = get_pid_of("dwmblocks", "dwmblocks-power")) == -ENOENT) {
+		pid = get_pid_of(path, "dwmblocks-power");
 	}
 
+	if (pid <= 0) {
+		logwrite("Failed to get the pID of", path, LOG_ERROR, "dwmblocks-power");
+		exit(errno);
+	}
+
+	kill(pid, SIGTERM);
 	unsetenv("BLOCK_BUTTON");
 	forkexecv(path, (char**) ARGS_DWMBLOCKS, "dwmblocks-power");
 	free(path);
@@ -164,8 +170,15 @@ main_menu(void)
 		break;
 
 	case 2:
-		if (get_xmenu_option(MENU_YES_NO, "dwmblocks-power") == 1)
-			killstr("/usr/local/bin/dwm", SIGTERM, "dwmblocks-power");
+		if (get_xmenu_option(MENU_YES_NO, "dwmblocks-power") == 1) {
+			int pid = get_pid_of("/usr/local/bin/dwm", "dwmblocks-power");
+			if (pid > 0) {
+				kill(pid, SIGTERM);
+			} else {
+				logwrite("Failed to get pid of process: ", "dwm", LOG_ERROR, "dwmblocks-power");
+				exit(errno);
+			}
+		}
 		break;
 
 	case 3:

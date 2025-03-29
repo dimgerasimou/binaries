@@ -3,7 +3,7 @@
 path="$HOME/.local/bin/dwm"
 
 cscripts="audiocontrol mediacontrol takescreenshot"
-shscripts="autostart.sh layoutmenu keyboard.sh"
+shscripts="layoutmenu keyboard.sh"
 
 CFLAGS="-Os -Wall -lX11 -lXrandr"
 LFLAGS="$(pkg-config --cflags --libs libnotify)"
