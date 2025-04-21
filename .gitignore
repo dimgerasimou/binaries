@@ -1,4 +1,4 @@
-**/bin/*
-**/.cache/*
+**/bin
+**/.cache
 **/*.o
 **/compile_commands.json

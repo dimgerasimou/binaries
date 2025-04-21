@@ -1,6 +1,6 @@
 #!/bin/sh
 
-installations="dmenu dwm dwmblocks"
+installations="dmenu dwm"
 
 case $1 in
 	-r|--uninstall)
