@@ -2,3 +2,6 @@
 **/.cache
 **/*.o
 **/compile_commands.json
+
+dmenu/c-src/dmenu-equalizer-select/config.h
+dmenu/c-src/dmenu-equalizer-select/dmenu-equalizer-select
