@@ -1,5 +1,5 @@
 # dmenu-equalizer-select - select easyeffects preset
-PREFIX = $(HOME)/.local/bin
+PREFIX = $(HOME)/.local
 
 CC = cc
 CFLAGS = -std=c99 -pedantic -Wall -Wextra -Os
