@@ -19,7 +19,7 @@ void makedir(char **fullpath, char *path);
 int execvfork(char *path, char *argv[]);
 
 void notify_screenshot() {
-	notify_init("dwm");
+	notify_init("dwm-screenshot");
 	NotifyNotification *notification = notify_notification_new("     Scrot", "Screenshot taken", "display");
 	notify_notification_set_urgency(notification, NOTIFY_URGENCY_LOW);
 	

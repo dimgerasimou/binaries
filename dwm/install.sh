@@ -1,49 +1,34 @@
 #!/bin/bash
 
-path="$HOME/.local/bin/dwm"
+prefix="$HOME/.local"
 
-cscripts="audiocontrol mediacontrol takescreenshot"
-shscripts="layoutmenu keyboard.sh"
-
-CFLAGS="-Os -Wall -lX11 -lXrandr"
-LFLAGS="$(pkg-config --cflags --libs libnotify)"
+cscripts="dwm-audio-control dwm-media-control dwm-screenshot"
+shscripts="dwm-xkbswitch"
 
 uninstall() {
 	echo "Deleting dwm scripts."
 
-	sudo rm -f /usr/share/xsessions/dwm.desktop
+	for script in $cscripts; do
+		make --directory=c-src/$script PREFIX=$prefix uninstall
+	done
 
 	for script in $shscripts; do
-		rm -f $path/$script
+		rm -f $prefix/bin/$script
 	done
-
-	for script in $cscripts; do
-		rm -f $path/$script
-	done
-
-	if [ -z "$(ls -A $path)" ]; then
-		rm -rf $path
-	fi
 }
 
 install() {
 	echo "Copying dwm scripts."
 
-	sudo mkdir -p /usr/share/xsessions
-	sudo cp misc-src/dwm.desktop /usr/share/xsessions/dwm.desktop
-
-	mkdir -p $path
+	mkdir -p $prefix/bin
 
 	for script in $shscripts; do
-		cp sh-src/$script $path/$script
+		cp sh-src/$script $prefix/bin/$script
 	done
 
-	cd c-src
 	for script in $cscripts; do
-		gcc -o $script $script.c $CFLAGS $LFLAGS
-		mv $script $path/$script
+		make --directory=c-src/$script PREFIX=$prefix install
 	done
-	cd ..
 }
 
 case $1 in
