@@ -1,67 +1,42 @@
 #!/bin/sh
 
-path="$HOME/.local/bin/dmenu"
-scripts="dmenu-wallpaper-selection"
-cscripts="dmenu-audio-source-select"
-mkscripts="wifi-prompt"
+prefix="$HOME/.local"
+
+shscripts="dmenu-wallpaper-selection"
+cscripts="dmenu-audio-source-select dmenu-equalizer-select dmenu-wifi-prompt"
 
 uninstall() {
         echo "Deleting dmenu scripts."
 
-	for script in $scripts; do
-		rm -f $path/$script
-	done
-
 	for script in $cscripts; do
-		rm -f $path/$script
+		make --directory=c-src/$script PREFIX=$prefix uninstall
 	done
 
-	for script in $mkscripts; do
-		rm -f $path/dmenu-$script
+	for script in $shscripts; do
+		rm -f $prefix/bin/$script
 	done
-
-	if [ -z "$(ls -A $path)" ]; then
-		rm -rf $path
-	fi
 }
 
 install() {
 	echo "Copying dmenu scripts."
 
-	mkdir -p $path
+	mkdir -p $prefix/bin
 
-	for script in $scripts; do
-	cp sh-src/$script $path/
+	for script in $shscripts; do
+		cp sh-src/$script $prefix/bin/$script
 	done
 
 	for script in $cscripts; do
-		gcc c-src/$script.c -o c-src/$script
-		mv c-src/$script $path/
-	done
-
-	for script in $mkscripts; do
-		make -C c-src/$script/
-		cp c-src/$script/bin/$script $path/dmenu-$script
-	done
-}
-
-clean() {
-	echo "Cleaning dmenu scripts."
-
-	for script in $mkscripts; do
-		make -C c-src/$script/ clean
+		make --directory=c-src/$script PREFIX=$prefix install
 	done
 }
 
 case $1 in
 	-r|--uninstall)
 		uninstall;;
-	
-	-c|--clean)
-		clean;;
 
 	-h|--help)
-		echo "Usage: install.sh [-r | --uninstall] [-c | --clean]"
+		echo "Usage: install.sh [-r | --uninstall]"
 		echo "default: install";;
 	
 	-*|--*)

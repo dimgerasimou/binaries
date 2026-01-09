@@ -1,24 +1,19 @@
-# dmenu-equalizer-select - select easyeffects preset
-
 CC      ?= cc
 CFLAGS  ?= -Wall -Wextra -Wno-deprecated-declarations -Os
-LDFLAGS ?= -s
+LDFLAGS ?=
 LDLIBS  ?=
 
 PREFIX  ?= $(HOME)/.local
 BINDIR  ?= bin
 
 SRC     = main.c
-BIN     = dmenu-equalizer-select
+BIN     = dmenu-audio-source-select
 TARGET  = $(BINDIR)/$(BIN)
 
 all: $(TARGET)
 
-$(TARGET): $(SRC) config.h | $(BINDIR)
+$(TARGET): $(SRC) | $(BINDIR)
 	$(CC) $(CFLAGS) -o $@ $(SRC) $(LDFLAGS) $(LDLIBS)
-
-config.h:
-	cp config.def.h config.h
 
 $(BINDIR):
 	mkdir -p $@
