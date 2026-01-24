@@ -15,7 +15,7 @@
 /* options */
 #define DEFAULT_BORDERSIZE 3
 #define DEFAULT_COLOR      0xFFEEEEEE /* ARGB Value */
-#define DEFAULT_SEL        1
+#define DEFAULT_FSCR       0
 
 static const char scrdirpath[]   = "~/Pictures/Screenshots/";
 static const char imgextention[] = "png";
@@ -25,7 +25,7 @@ static void  die(const char *fmt, ...);
 static char *expandpath(const char *dir);
 static int   isdir(const char *path);
 static int   mkdir_p(const char *path, const mode_t mode);
-static void  parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *sel);
+static void  parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *fscr);
 static int   parsergb(const char *s, unsigned int *out);
 static int   parseuint(const char *s, unsigned int *out, const unsigned int base);
 static char *setfilepath(const char *dir);
@@ -308,7 +308,7 @@ usage(void)
 }
 
 static void
-parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *sel)
+parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *fscr)
 {
 	unsigned int v;
 
@@ -334,7 +334,7 @@ parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, u
 				die("invalid argument for -o (expected 0x00..0xFF)");
 			*argb = (*argb & 0x00FFFFFFu) | (v << 24);
 		} else if (!strcmp(argv[i], "-f")) {
-			*sel = 0;
+			*fscr = 0;
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
 			usage();
 			exit(0);
@@ -395,16 +395,52 @@ getpath(const char *dir)
 	return path;
 }
 
+static void
+argvmaim(char *argv[16], const char *path, const unsigned int bsz, const unsigned int argb, const unsigned int fscr)
+{
+	char c[44];
+	char b[32];
+	int i = 0;
+	int n;
+
+	/* make color str */
+	n = snprintf(c, sizeof(c), "--color=%f,%f,%f,%f",
+	             ((argb >> 16) & 0xFFu) / 255.0,
+	             ((argb >>  8) & 0xFFu) / 255.0,
+	             ((argb >>  0) & 0xFFu) / 255.0,
+	             ((argb >> 24) & 0xFFu) / 255.0);
+	if (n < 0 || (size_t)n >= sizeof(c))
+		die("snprintf:");
+
+	/* make border str */
+	n = snprintf(b, sizeof(b), "--bordersize=%u", bsz);
+	if (n < 0 || (size_t)n >= sizeof(b))
+		die("snprintf:");
+
+	argv[i++] = "maim";
+	argv[i++] = "--capturebackground";
+
+	if (!fscr) {
+		argv[i++] = "--select";
+		argv[i++] = b;
+		argv[i++] = c;
+	}
+
+	argv[i++] = (char*)path;
+	argv[i++] = NULL;
+}
+
 int
 main(int argc, char *argv[])
 {
 	char *path;
+	char *margv[16];
 
 	unsigned int bsz  = DEFAULT_BORDERSIZE;
 	unsigned int argb = DEFAULT_COLOR;
-	unsigned int sel  = DEFAULT_SEL;
+	unsigned int fscr = DEFAULT_FSCR;
 
-	parseargs(argc, argv, &bsz, &argb, &sel);
+	parseargs(argc, argv, &bsz, &argb, &fscr);
 
 	printf("%u, %x\n", bsz, argb);
 
@@ -413,6 +449,13 @@ main(int argc, char *argv[])
 		die("getpath() failed");
 
 	puts(path);
+
+	argvmaim(margv, path, bsz, argb, fscr);
+
+	for (int i = 0; margv[i] != NULL; i++)
+		printf("%d: %s, ", i, margv[i]);
+	putc('\n', stdout);
+
 	free(path);
 
 	return 0;
