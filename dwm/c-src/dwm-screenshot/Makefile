@@ -1,31 +1,39 @@
-CC      ?= cc
-CFLAGS  ?= -Wall -Wextra -Wno-deprecated-declarations -Os
-LDFLAGS ?= $(shell pkg-config --cflags --libs libnotify)
-LDLIBS  ?=
+CC       ?= cc
+CFLAGS   ?= -Wall -Wextra -Wno-deprecated-declarations -Os
+CPPFLAGS ?=
+LDLIBS   ?=
 
-PREFIX  ?= $(HOME)/.local
-BINDIR  ?= bin
+PREFIX   ?= $(HOME)/.local
+BINDIR   := bin
 
-SRC     = main.c
-BIN     = dwm-screenshot
-TARGET  = $(BINDIR)/$(BIN)
+BIN      := dwm-screenshot
+SRC      := $(BIN).c
+TARGET   := $(BINDIR)/$(BIN)
+
+PKG      := libnotify
+CPPFLAGS += $(shell pkg-config --cflags $(PKG) 2>/dev/null)
+LDLIBS   += $(shell pkg-config --libs   $(PKG) 2>/dev/null)
 
 all: $(TARGET)
 
 $(TARGET): $(SRC) | $(BINDIR)
-	$(CC) $(CFLAGS) -o $@ $(SRC) $(LDFLAGS) $(LDLIBS)
+	@echo "CC $< -> $@"
+	@$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $< $(LDFLAGS) $(LDLIBS)
 
 $(BINDIR):
-	mkdir -p $@
+	@mkdir -p $@
 
 clean:
-	rm -rf $(BINDIR)
+	@echo "RM $(BINDIR)"
+	@rm -rf $(BINDIR)
 
-install: all
-	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	install -m 755 $(TARGET) $(DESTDIR)$(PREFIX)/bin/$(BIN)
+install: $(TARGET)
+	@echo "INSTALL $(BIN) -> $(DESTDIR)$(PREFIX)/bin/$(BIN)"
+	@install -d $(DESTDIR)$(PREFIX)/bin
+	@install -m 755 $(TARGET) $(DESTDIR)$(PREFIX)/bin/$(BIN)
 
 uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/bin/$(BIN)
+	@echo "UNINSTALL $(DESTDIR)$(PREFIX)/bin/$(BIN)"
+	@rm -f $(DESTDIR)$(PREFIX)/bin/$(BIN)
 
 .PHONY: all clean install uninstall
