@@ -15,6 +15,7 @@
 /* options */
 #define DEFAULT_BORDERSIZE 3
 #define DEFAULT_COLOR      0xFFEEEEEE /* ARGB Value */
+#define DEFAULT_SEL        1
 
 static const char scrdirpath[]   = "~/Pictures/Screenshots/";
 static const char imgextention[] = "png";
@@ -24,7 +25,7 @@ static void  die(const char *fmt, ...);
 static char *expandpath(const char *dir);
 static int   isdir(const char *path);
 static int   mkdir_p(const char *path, const mode_t mode);
-static void  parseargs(int argc, char **argv, unsigned int *bordersize, unsigned int *argb);
+static void  parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *sel);
 static int   parsergb(const char *s, unsigned int *out);
 static int   parseuint(const char *s, unsigned int *out, const unsigned int base);
 static char *setfilepath(const char *dir);
@@ -307,7 +308,7 @@ usage(void)
 }
 
 static void
-parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb)
+parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *sel)
 {
 	unsigned int v;
 
@@ -332,6 +333,8 @@ parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb)
 			if (v > 0xFFu)
 				die("invalid argument for -o (expected 0x00..0xFF)");
 			*argb = (*argb & 0x00FFFFFFu) | (v << 24);
+		} else if (!strcmp(argv[i], "-f")) {
+			*sel = 0;
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
 			usage();
 			exit(0);
@@ -399,8 +402,9 @@ main(int argc, char *argv[])
 
 	unsigned int bsz  = DEFAULT_BORDERSIZE;
 	unsigned int argb = DEFAULT_COLOR;
+	unsigned int sel  = DEFAULT_SEL;
 
-	parseargs(argc, argv, &bsz, &argb);
+	parseargs(argc, argv, &bsz, &argb, &sel);
 
 	printf("%u, %x\n", bsz, argb);
 
