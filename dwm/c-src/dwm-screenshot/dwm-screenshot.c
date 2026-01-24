@@ -1,5 +1,3 @@
-#define _POSIX_C_SOURCE 200809L
-
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
@@ -10,7 +8,10 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <time.h>
+#include <unistd.h>
+#include <libnotify/notify.h>
 
 /* options */
 #define DEFAULT_BORDERSIZE 3
@@ -18,13 +19,17 @@
 #define DEFAULT_FSCR       0
 
 static const char scrdirpath[]   = "~/Pictures/Screenshots/";
-static const char imgextention[] = "png";
+static const char imgextension[] = "png";
 
 /* function defs */
+static void  argvmaim(const char *argv[], const size_t argc, const char *path, const unsigned int bsz, const unsigned int argb, const unsigned int fscr);
 static void  die(const char *fmt, ...);
 static char *expandpath(const char *dir);
+static int   fexecvp(const char *argv[]);
+static char *getpath(const char *dir);
 static int   isdir(const char *path);
 static int   mkdir_p(const char *path, const mode_t mode);
+static int   notify(void);
 static void  parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *fscr);
 static int   parsergb(const char *s, unsigned int *out);
 static int   parseuint(const char *s, unsigned int *out, const unsigned int base);
@@ -32,6 +37,50 @@ static char *setfilepath(const char *dir);
 static void  usage(void);
 
 static void
+apparg(const char *argv[], const char *arg, size_t *i, const size_t argc)
+{
+	if (*i >= argc)
+		die("maim argv overflow");
+	
+	argv[(*i)++] = arg;
+}
+
+void
+argvmaim(const char *argv[], const size_t argc, const char *path, 
+         const unsigned int bsz, const unsigned int argb, const unsigned int fscr)
+{
+	static char c[44];
+	static char b[32];
+	size_t i = 0;
+	int n;
+
+	n = snprintf(c, sizeof(c), "--color=%.6f,%.6f,%.6f,%.6f",
+	             ((argb >> 16) & 0xFFu) / 255.0,
+	             ((argb >>  8) & 0xFFu) / 255.0,
+	             ((argb >>  0) & 0xFFu) / 255.0,
+	             ((argb >> 24) & 0xFFu) / 255.0);
+	if (n < 0 || (size_t)n >= sizeof(c))
+		die("snprintf:");
+
+	n = snprintf(b, sizeof(b), "--bordersize=%u", bsz);
+	if (n < 0 || (size_t)n >= sizeof(b))
+		die("snprintf:");
+
+	apparg(argv, "maim", &i, argc);
+	apparg(argv, "--quiet", &i, argc);
+	apparg(argv, "--capturebackground", &i, argc);
+
+	if (!fscr) {
+		apparg(argv, "--select", &i, argc);
+		apparg(argv, b, &i, argc);
+		apparg(argv, c, &i, argc);
+	}
+
+	apparg(argv, path, &i, argc);
+	argv[i] = NULL;
+}
+
+void
 die(const char *fmt, ...)
 {
 	va_list ap;
@@ -51,7 +100,7 @@ die(const char *fmt, ...)
 }
 
 /* expand ~, ~/, $ENV, ${ENV} in a POSIX-like way */
-static char *
+char *
 expandpath(const char *dir)
 {
 	const size_t chunk = 256;
@@ -194,7 +243,56 @@ expandpath(const char *dir)
 	return tmp;
 }
 
-static int
+int
+fexecvp(const char *argv[])
+{
+	pid_t pid;
+	int s;
+
+	pid = fork();
+	if (pid < 0)
+		die("fork:");
+	if (!pid) {
+		/* child */
+		execvp(*argv, (char **)argv);
+		perror("execvp");
+		_exit(127);
+	}
+
+	do {
+		if (waitpid(pid, &s, 0) < 0) {
+			if (errno == EINTR)
+				continue;
+			return 1;
+		}
+		break;
+	} while (1);
+
+	if (WIFEXITED(s))
+		return WEXITSTATUS(s);
+	return 128 + WTERMSIG(s);
+}
+
+char *
+getpath(const char *dir)
+{
+	char *dirpath;
+	char *path;
+
+	dirpath = expandpath(dir);
+	if (!dirpath)
+		return NULL;
+
+	if (mkdir_p(dirpath, 0755))
+		die("failed to create directory: %s", dirpath);
+
+	path = setfilepath(dirpath);
+	free(dirpath);
+
+	return path;
+}
+
+int
 isdir(const char *path)
 {
 	struct stat st;
@@ -203,7 +301,7 @@ isdir(const char *path)
 	return S_ISDIR(st.st_mode);
 }
 
-static int
+int
 mkdir_p(const char *path, const mode_t mode)
 {
 	char *buf = NULL;
@@ -262,7 +360,35 @@ mkdir_p(const char *path, const mode_t mode)
 	return 0;
 }
 
-static int
+int
+notify(void)
+{
+	NotifyNotification *n;
+
+	if (!notify_init("dwm-screenshot"))
+		return 1;
+
+	n = notify_notification_new(" dwm-screenshot", "Screenshot taken", "display");
+	if (!n) {
+		notify_uninit();
+		return 1;
+	}
+
+	notify_notification_set_urgency(n, NOTIFY_URGENCY_LOW);
+	notify_notification_set_timeout(n, 5000);
+
+	if (!notify_notification_show(n, NULL)) {
+		g_object_unref(n);
+		notify_uninit();
+		return 1;
+	}
+
+	g_object_unref(n);
+	notify_uninit();
+	return 0;
+}
+
+int
 parsergb(const char *s, unsigned int *out)
 {
 	char *end;
@@ -282,7 +408,7 @@ parsergb(const char *s, unsigned int *out)
 	return 0;
 }
 
-static int
+int
 parseuint(const char *s, unsigned int *out, const unsigned int base)
 {
 	char *end;
@@ -301,13 +427,13 @@ parseuint(const char *s, unsigned int *out, const unsigned int base)
 	return 0;
 }
 
-static void
+void
 usage(void)
 {
-	fputs("usage: dwm-screenshot [-b bordersize] [-c #RRGGBB] [-o 0xAA] [-h]\n", stderr);
+	fputs("usage: dwm-screenshot [-b bordersize] [-c #RRGGBB] [-o 0xAA] [-fh]\n", stderr);
 }
 
-static void
+void
 parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *fscr)
 {
 	unsigned int v;
@@ -334,7 +460,7 @@ parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, u
 				die("invalid argument for -o (expected 0x00..0xFF)");
 			*argb = (*argb & 0x00FFFFFFu) | (v << 24);
 		} else if (!strcmp(argv[i], "-f")) {
-			*fscr = 0;
+			*fscr = 1;
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
 			usage();
 			exit(0);
@@ -344,7 +470,7 @@ parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, u
 	}
 }
 
-static char *
+char *
 setfilepath(const char *dir)
 {
 	time_t now = time(NULL);
@@ -359,7 +485,7 @@ setfilepath(const char *dir)
 		die("failed to populate struct tm:");
 
 	sz = strlen(dir) + strlen("Screenshot-0000-00-00-000000.") +
-	     strlen(imgextention) + 1;
+	     strlen(imgextension) + 1;
 
 	ret = malloc(sz);
 	if (!ret)
@@ -369,72 +495,19 @@ setfilepath(const char *dir)
 	                 "%sScreenshot-%04d-%02d-%02d-%02d%02d%02d.%s",
 	                 dir,
 	                 tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-	                 tm.tm_hour, tm.tm_min, tm.tm_sec, imgextention);
+	                 tm.tm_hour, tm.tm_min, tm.tm_sec, imgextension);
 	if (n < 0 || (size_t)n >= sz)
 		die("snprintf:");
 
 	return ret;
 }
 
-static char *
-getpath(const char *dir)
-{
-	char *dirpath;
-	char *path;
-
-	dirpath = expandpath(dir);
-	if (!dirpath)
-		return NULL;
-
-	if (mkdir_p(dirpath, 0755))
-		die("failed to create directory: %s", dirpath);
-
-	path = setfilepath(dirpath);
-	free(dirpath);
-
-	return path;
-}
-
-static void
-argvmaim(char *argv[16], const char *path, const unsigned int bsz, const unsigned int argb, const unsigned int fscr)
-{
-	char c[44];
-	char b[32];
-	int i = 0;
-	int n;
-
-	/* make color str */
-	n = snprintf(c, sizeof(c), "--color=%f,%f,%f,%f",
-	             ((argb >> 16) & 0xFFu) / 255.0,
-	             ((argb >>  8) & 0xFFu) / 255.0,
-	             ((argb >>  0) & 0xFFu) / 255.0,
-	             ((argb >> 24) & 0xFFu) / 255.0);
-	if (n < 0 || (size_t)n >= sizeof(c))
-		die("snprintf:");
-
-	/* make border str */
-	n = snprintf(b, sizeof(b), "--bordersize=%u", bsz);
-	if (n < 0 || (size_t)n >= sizeof(b))
-		die("snprintf:");
-
-	argv[i++] = "maim";
-	argv[i++] = "--capturebackground";
-
-	if (!fscr) {
-		argv[i++] = "--select";
-		argv[i++] = b;
-		argv[i++] = c;
-	}
-
-	argv[i++] = (char*)path;
-	argv[i++] = NULL;
-}
-
 int
 main(int argc, char *argv[])
 {
 	char *path;
-	char *margv[16];
+	const char *margv[16];
+	int n;
 
 	unsigned int bsz  = DEFAULT_BORDERSIZE;
 	unsigned int argb = DEFAULT_COLOR;
@@ -442,21 +515,19 @@ main(int argc, char *argv[])
 
 	parseargs(argc, argv, &bsz, &argb, &fscr);
 
-	printf("%u, %x\n", bsz, argb);
-
 	path = getpath(scrdirpath);
 	if (!path)
 		die("getpath() failed");
 
-	puts(path);
+	argvmaim(margv, sizeof(margv) / sizeof(margv[0]), path, bsz, argb, fscr);
 
-	argvmaim(margv, path, bsz, argb, fscr);
-
-	for (int i = 0; margv[i] != NULL; i++)
-		printf("%d: %s, ", i, margv[i]);
-	putc('\n', stdout);
-
+	n = fexecvp(margv);
 	free(path);
 
-	return 0;
+	if (!n) {
+		if (notify())
+			die("notify failed");
+	}
+
+	return n;
 }
