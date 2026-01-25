@@ -22,6 +22,7 @@ static const char scrdirpath[]   = "~/Pictures/Screenshots/";
 static const char imgextension[] = "png";
 
 /* function defs */
+static void  apparg(const char *argv[], const char *arg, size_t *i, const size_t argc);
 static void  argvmaim(const char *argv[], const size_t argc, const char *path, const unsigned int bsz, const unsigned int argb, const unsigned int fscr);
 static void  die(const char *fmt, ...);
 static char *expandpath(const char *dir);
@@ -36,7 +37,7 @@ static int   parseuint(const char *s, unsigned int *out, const unsigned int base
 static char *setfilepath(const char *dir);
 static void  usage(void);
 
-static void
+void
 apparg(const char *argv[], const char *arg, size_t *i, const size_t argc)
 {
 	if (*i >= argc)
