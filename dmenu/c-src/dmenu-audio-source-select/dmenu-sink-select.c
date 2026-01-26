@@ -117,7 +117,7 @@ makeargv(const int argc, char *argv[])
 	if (!v)
 		die("malloc:");
 
-	v[s++] = (char *)"dmenu";
+	v[s++] = (char *)menucmd;
 	v[s++] = (char *)"-p";
 	v[s++] = (char *)"Select the default audio sink:";
 
@@ -156,7 +156,7 @@ menu(const char *list, const char *argv[])
 		close(p[TO_CHILD][RD]); close(p[TO_CHILD][WR]);
 		close(p[FROM_CHILD][RD]); close(p[FROM_CHILD][WR]);
 
-		execvp("dmenu", (char**)argv);
+		execvp(*argv, (char**)argv);
 		_exit(127);
 	}
 
@@ -300,8 +300,16 @@ main(int argc, char *argv[])
 	sink_cleanup();
 
 	if (*hookargv) {
-		execvp(*hookargv, (char**)hookargv);
-		_exit(127);
+		pid_t pid = fork();
+		
+		if (pid < 0)
+			die("fork:");
+
+		if (pid == 0) {
+			execvp(*hookargv, (char**)hookargv);
+			_exit(127);
+		}
 	}
+
 	return 0;
 }

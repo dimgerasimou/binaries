@@ -1,3 +1,5 @@
+static const char menucmd[] = "dmenu";
+
 /* argv for post run hook (using execvp)
  * example:
  * static const char *hookargv[] = { "pkill", "-RTMIN+5", "dwmblocks", NULL };
