@@ -179,6 +179,9 @@ menu(const char *list, const char *argv[])
 	while (n > 0 && (buf[n - 1] == '\n' || buf[n - 1] == '\r'))
 		buf[--n] = '\0';
 
+	if (n <= 0)
+		return -1;
+
 	char *tab = strchr(buf, '\t');
 	if (!tab || tab[1] == '\0')
 		return -1;
@@ -199,7 +202,7 @@ char *
 sinkstostr(sink_list_t *l)
 {
 	char *ret;
-	size_t sz;
+	size_t sz, pos;
 	FILE *fp;
 
 	sz = 1;
@@ -208,6 +211,7 @@ sinkstostr(sink_list_t *l)
 		die("malloc:");
 
 	ret[0] = '\0';
+	pos = 0;
 
 	fp = ignopen();
 
@@ -229,7 +233,7 @@ sinkstostr(sink_list_t *l)
 		n = snprintf(s, ssz, "%s\t%d\n", l->sinks[i].desc, l->sinks[i].idx);
 
 		if (n < 0 || (size_t)n >= ssz)
-			die("snpritf:");
+			die("snprintf:");
 
 		sz += ssz - 1;
 
@@ -238,7 +242,10 @@ sinkstostr(sink_list_t *l)
 			die("realloc:");
 		ret = tmp;
 
-		strcat(ret, s);
+		memcpy(ret + pos, s, (size_t)n);
+		pos += (size_t)n;
+		ret[pos] = '\0';
+
 		free(s);
 	}
 

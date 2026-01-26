@@ -1,5 +1,4 @@
 #include <pulse/pulseaudio.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -21,6 +20,11 @@ typedef struct {
 	int done;
 	int success;
 } set_req_t;
+
+typedef struct {
+	char *name;
+	int done;
+} get_name_req_t;
 
 static sink_ctx_t g_ctx = {0};
 
@@ -71,6 +75,23 @@ sink_info_cb(pa_context *c, const pa_sink_info *i, int eol, void *userdata)
 	s->desc = strdup(i->description);
 	s->idx = i->index;
 	req->list->count++;
+}
+
+static void
+sink_info_by_index_cb(pa_context *c, const pa_sink_info *i, int eol, void *userdata)
+{
+	(void)c;
+	get_name_req_t *req = userdata;
+
+	if (eol > 0 || !i) {
+		req->done = 1;
+		pa_threaded_mainloop_signal(g_ctx.ml, 0);
+		return;
+	}
+
+	req->name = strdup(i->name);
+	req->done = 1;
+	pa_threaded_mainloop_signal(g_ctx.ml, 0);
 }
 
 static void
@@ -195,29 +216,49 @@ int
 sink_set_default(uint32_t idx)
 {
 	pa_operation *op;
-	set_req_t req = {0};
-	char idx_str[16];
+	set_req_t set_req = {0};
+	get_name_req_t name_req = {0};
+	int ret = -1;
 
 	if (!g_ctx.ml || !g_ctx.ready)
 		return -1;
 
-	snprintf(idx_str, sizeof(idx_str), "%u", idx);
-
 	pa_threaded_mainloop_lock(g_ctx.ml);
 
-	op = pa_context_set_default_sink(g_ctx.ctx, idx_str, set_default_cb, &req);
+	/* First, get the sink name from the index */
+	op = pa_context_get_sink_info_by_index(g_ctx.ctx, idx, sink_info_by_index_cb, &name_req);
 	if (!op) {
 		pa_threaded_mainloop_unlock(g_ctx.ml);
 		return -1;
 	}
 	pa_operation_unref(op);
 
-	while (!req.done)
+	while (!name_req.done)
 		pa_threaded_mainloop_wait(g_ctx.ml);
 
+	if (!name_req.name) {
+		pa_threaded_mainloop_unlock(g_ctx.ml);
+		return -1;
+	}
+
+	/* Now set it as default using the name */
+	op = pa_context_set_default_sink(g_ctx.ctx, name_req.name, set_default_cb, &set_req);
+	if (!op) {
+		free(name_req.name);
+		pa_threaded_mainloop_unlock(g_ctx.ml);
+		return -1;
+	}
+	pa_operation_unref(op);
+
+	while (!set_req.done)
+		pa_threaded_mainloop_wait(g_ctx.ml);
+
+	ret = set_req.success ? 0 : -1;
+
+	free(name_req.name);
 	pa_threaded_mainloop_unlock(g_ctx.ml);
 
-	return req.success ? 0 : -1;
+	return ret;
 }
 
 void
