@@ -217,8 +217,15 @@ main(int argc, char *argv[])
 	audio_cleanup();
 
 	if (*hookargv) {
-		execvp(*hookargv, (char**)hookargv);
-		_exit(127);
+		pid_t pid = fork();
+		
+		if (pid < 0)
+			die("fork:");
+
+		if (pid == 0) {
+			execvp(*hookargv, (char**)hookargv);
+			_exit(127);
+		}
 	}
 
 	return 0;
