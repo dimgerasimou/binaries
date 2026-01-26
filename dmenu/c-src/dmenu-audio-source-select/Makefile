@@ -1,31 +1,44 @@
-CC      ?= cc
-CFLAGS  ?= -Wall -Wextra -Wno-deprecated-declarations -Os
-LDFLAGS ?=
-LDLIBS  ?=
+CC       ?= cc
+CFLAGS   ?= -Wall -Wextra -Wno-deprecated-declarations -Os
+LDLIBS   ?= -lpulse
 
-PREFIX  ?= $(HOME)/.local
-BINDIR  ?= bin
+PREFIX   ?= $(HOME)/.local
+BINDIR   := bin
+OBJDIR   := obj
 
-SRC     = main.c
-BIN     = dmenu-audio-source-select
-TARGET  = $(BINDIR)/$(BIN)
+BIN      := dmenu-sink-select
+SRCS     := dmenu-sink-select.c sink.c
+OBJS     := $(SRCS:%.c=$(OBJDIR)/%.o)
+TARGET   := $(BINDIR)/$(BIN)
 
 all: $(TARGET)
 
-$(TARGET): $(SRC) | $(BINDIR)
-	$(CC) $(CFLAGS) -o $@ $(SRC) $(LDFLAGS) $(LDLIBS)
+$(TARGET): $(OBJS) | $(BINDIR)
+	@echo "LD $(OBJS) -> $@"
+	@$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
-$(BINDIR):
-	mkdir -p $@
+$(OBJDIR)/%.o: %.c sink.h config.h | $(OBJDIR)
+	@echo "CC $< -> $@"
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(BINDIR) $(OBJDIR):
+	@mkdir -p $@
+
+config.h:
+	@echo "CP config.def.h -> config.h"
+	@cp config.def.h $@
 
 clean:
-	rm -rf $(BINDIR)
+	@echo "RM $(BINDIR) $(OBJDIR)"
+	@rm -rf $(BINDIR) $(OBJDIR)
 
-install: all
-	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	install -m 755 $(TARGET) $(DESTDIR)$(PREFIX)/bin/$(BIN)
+install: $(TARGET)
+	@echo "INSTALL $(BIN) -> $(DESTDIR)$(PREFIX)/bin/$(BIN)"
+	@install -d $(DESTDIR)$(PREFIX)/bin
+	@install -m 755 $(TARGET) $(DESTDIR)$(PREFIX)/bin/$(BIN)
 
 uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/bin/$(BIN)
+	@echo "UNINSTALL $(DESTDIR)$(PREFIX)/bin/$(BIN)"
+	@rm -f $(DESTDIR)$(PREFIX)/bin/$(BIN)
 
 .PHONY: all clean install uninstall
