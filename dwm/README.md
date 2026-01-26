@@ -26,7 +26,7 @@ For individual binary dependencies check the corresponding README.
 
 ## Installation
 
-Check that dependencies are install and run:
+Make sure that dependenices are installed and run:
 
 ```sh
 ./install.sh
