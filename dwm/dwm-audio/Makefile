@@ -4,26 +4,32 @@ LDLIBS   ?= -lpulse
 
 PREFIX   ?= $(HOME)/.local
 BINDIR   := bin
+OBJDIR   := obj
 
 BIN      := dwm-audio
 SRCS     := dwm-audio.c audio.c
+OBJS     := $(SRCS:%.c=$(OBJDIR)/%.o)
 TARGET   := $(BINDIR)/$(BIN)
 
 all: $(TARGET)
 
-$(TARGET): $(SRCS) audio.h | $(BINDIR) config.h
-	@echo "CC $(SRCS) -> $@"
-	@$(CC) $(CFLAGS) -o $@ $(SRCS) $(LDLIBS)
+$(TARGET): $(OBJS) | $(BINDIR)
+	@echo "LD $(OBJS) -> $@"
+	@$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDLIBS)
 
-$(BINDIR):
+$(OBJDIR)/%.o: %.c audio.h config.h | $(OBJDIR)
+	@echo "CC $< -> $@"
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(BINDIR) $(OBJDIR):
 	@mkdir -p $@
 
 config.h:
 	@cp config.def.h $@
 
 clean:
-	@echo "RM $(BINDIR)"
-	@rm -rf $(BINDIR)
+	@echo "RM $(BINDIR) $(OBJDIR)"
+	@rm -rf $(BINDIR) $(OBJDIR)
 
 install: $(TARGET)
 	@echo "INSTALL $(BIN) -> $(DESTDIR)$(PREFIX)/bin/$(BIN)"
