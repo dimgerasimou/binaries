@@ -113,7 +113,7 @@ makeargv(const int argc, char *argv[])
 	size_t s = 0;
 
 	/* exec argv: ["dmenu", "-p", <prompt>, <args...>, NULL] */
-	v = malloc(((size_t)argc + 3) * sizeof(*v));
+	v = malloc(((size_t)argc + 4) * sizeof(*v));
 	if (!v)
 		die("malloc:");
 
