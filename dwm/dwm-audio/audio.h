@@ -1,5 +1,5 @@
-#ifndef PA_H
-#define PA_H
+#ifndef AUDIO_H
+#define AUDIO_H
 
 typedef enum {
 	AUDIO_SINK,
@@ -41,4 +41,4 @@ double audio_get_volume(audio_dev_t dev);
 /* Get current mute state, -1 on error */
 int audio_get_mute(audio_dev_t dev);
 
-#endif
+#endif /* AUDIO_H */
