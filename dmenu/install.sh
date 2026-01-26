@@ -3,10 +3,10 @@
 prefix="$HOME/.local"
 
 shscripts="dmenu-wallpaper-selection"
-cscripts="dmenu-audio-source-select dmenu-equalizer-select dmenu-wifi-prompt"
+cscripts="dmenu-sink-select dmenu-equalizer-select dmenu-wifi-prompt"
 
 uninstall() {
-        echo "Deleting dmenu scripts."
+	echo "Deleting dmenu scripts."
 
 	for script in $cscripts; do
 		make --directory=c-src/$script PREFIX=$prefix uninstall
