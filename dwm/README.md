@@ -17,11 +17,12 @@ For individual binary dependencies check the corresponding README.
 
 - X11
 - libnotify
+- libpulse
 
 ### Run Time
 
 - [maim](https://github.com/naelstrof/maim)
-- wireplumber
+- pulseaudio or pipewire-pulse
 
 ## Installation
 
