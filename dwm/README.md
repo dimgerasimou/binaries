@@ -1,71 +1,38 @@
 # Binaries for dwm
 
-## audiocontrol
+## Contents
 
-### Usage
+This directory contains the following binaries:
+- dwm-audio
+- dwm-screenshot
+- dwm-xkbnext
 
-Executing this with a given set of arguments raises or decreses the volume by 5%
-of the default audio source or sink, then signals dwmblocks to update the corresponding block.
+For more information read the corresponding README files and code inside each implementation.
 
-### Examples
+## Dependencies
 
-``` bash
-	./audiocontrol source increase
+For individual binary dependencies check the corresponding README.
 
-```
-Increacess the volume by 5% to the default source.
+### Compile Time
 
-``` bash
-	./audiocontrol sink mute
-
-```
-Toggles the mute property of the default sink.
-
-### Dependencies
-
-- Wireplumber
-- dwmblocksctl (Binary can be found in my own build of dwmblocks.)
-
-## mediacontrol
-
-### Usage
-
-This execuatble gets the first mpris client, or one selected from `$HOME/.local/state/dwm/mprisclient` for playback control
-with one of the following arguments:
-- toggle - toggles play - pause
-- stop - stops playback
-- next - moves to next track
-- prev - moves to previous track
-
-### Dependencies
-
-Has no dependencies.
-
-## takescreenshot
-
-### Usage
-
-Running this executable, takes a screenshot with scrot and saves it at `$HOME/Pictures/Screenshots` with the iso date as filename.
-
-### Dependenices
-Runtime:
-- scrot
-
-Compile time:
+- X11
 - libnotify
 
-## dwm.desktop
+### Run Time
 
-### Usage 
+- [maim](https://github.com/naelstrof/maim)
+- wireplumber
 
-This is simply a desktop entry for dwm, to be copied in the `xsessions` folder for dwm support with login managers.
+## Installation
 
-## layoutmenu
+Check that dependencies are install and run:
 
-### Usage
+```sh
+./install.sh
 
-This is a menu with all dwm window layouts I have configured. Uses xmenu to print all of them and returns the one clicked.
+```
+To uninstall:
 
-### Dependencies
-
-- xmenu
+```sh
+./install.sh --uninstall
+```

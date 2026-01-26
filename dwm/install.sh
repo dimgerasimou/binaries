@@ -2,32 +2,21 @@
 
 prefix="$HOME/.local"
 
-cscripts="dwm-audio-control dwm-media-control dwm-screenshot"
-shscripts="dwm-xkbswitch"
+targets="dwm-audio dwm-screenshot dwm-xkbnext"
 
 uninstall() {
-	echo "Deleting dwm scripts."
+	echo "Uninstalling dwm binaries..."
 
-	for script in $cscripts; do
-		make --directory=c-src/$script PREFIX=$prefix uninstall
-	done
-
-	for script in $shscripts; do
-		rm -f $prefix/bin/$script
+	for script in $targets; do
+		make --directory=$script PREFIX=$prefix uninstall
 	done
 }
 
 install() {
-	echo "Copying dwm scripts."
+	echo "Installing dwm binaries..."
 
-	mkdir -p $prefix/bin
-
-	for script in $shscripts; do
-		cp sh-src/$script $prefix/bin/$script
-	done
-
-	for script in $cscripts; do
-		make --directory=c-src/$script PREFIX=$prefix install
+	for script in $targets; do
+		make --directory=$script PREFIX=$prefix install
 	done
 }
 
