@@ -48,8 +48,8 @@ dmenu-sink-select
 # Custom dmenu font and colors
 dmenu-sink-select -fn 'monospace:size=12' -nb '#1e1e2e' -nf '#cdd6f4'
 
-# Use with rofi instead of dmenu
-dmenu-sink-select -dmenu rofi -dmenu
+# Use with rofi instead of dmenu (make sure to set menucmd = "rofi" at config.h)
+dmenu-sink-select -dmenu
 
 # Case-insensitive matching
 dmenu-sink-select -i
@@ -65,9 +65,6 @@ static const char menucmd[] = "dmenu";
 /* Post-selection hook (using execvp)
  * Example for dwmblocks status bar update:
  * static const char *hookargv[] = { "pkill", "-RTMIN+5", "dwmblocks", NULL };
- * 
- * Example for dwmblocksctl:
- * static const char *hookargv[] = { "dwmblocksctl", "-s", "volume", NULL };
  */
 static const char *hookargv[] = { NULL };
 ```
