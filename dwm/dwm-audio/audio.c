@@ -2,7 +2,7 @@
 #include <pulse/volume.h>
 #include <string.h>
 
-#include "pa.h"
+#include "audio.h"
 
 typedef enum {
 	AUDIO_VOL_SET,

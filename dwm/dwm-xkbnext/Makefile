@@ -1,24 +1,19 @@
 CC       ?= cc
 CFLAGS   ?= -Wall -Wextra -Wno-deprecated-declarations -Os
-CPPFLAGS ?=
 LDLIBS   ?= -lX11
 
 PREFIX   ?= $(HOME)/.local
 BINDIR   := bin
 
 BIN      := dwm-xkbnext
-SRC      := $(BIN).c
+SRC      := dwm-xkbnext.c
 TARGET   := $(BINDIR)/$(BIN)
-
-PKG      :=
-CPPFLAGS += $(shell pkg-config --cflags $(PKG) 2>/dev/null)
-LDLIBS   += $(shell pkg-config --libs   $(PKG) 2>/dev/null)
 
 all: $(TARGET)
 
 $(TARGET): $(SRC) | $(BINDIR) config.h
 	@echo "CC $< -> $@"
-	@$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $< $(LDFLAGS) $(LDLIBS)
+	@$(CC) $(CFLAGS) -o $@ $< $(LDLIBS)
 
 $(BINDIR):
 	@mkdir -p $@

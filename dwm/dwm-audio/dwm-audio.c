@@ -6,7 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "pa.h"
+#include "audio.h"
 #include "config.h"
 
 static void die(const char *fmt, ...);

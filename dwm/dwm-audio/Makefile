@@ -1,26 +1,19 @@
 CC       ?= cc
 CFLAGS   ?= -Wall -Wextra -Wno-deprecated-declarations -Os
-CPPFLAGS ?=
 LDLIBS   ?= -lpulse
 
 PREFIX   ?= $(HOME)/.local
 BINDIR   := bin
 
 BIN      := dwm-audio
-SRCDIR   := src
-SRCS     := $(SRCDIR)/main.c $(SRCDIR)/pa.c
-INCS     := -I.
+SRCS     := dwm-audio.c audio.c
 TARGET   := $(BINDIR)/$(BIN)
-
-PKG      :=
-CPPFLAGS += $(shell pkg-config --cflags $(PKG) 2>/dev/null)
-LDLIBS   += $(shell pkg-config --libs   $(PKG) 2>/dev/null)
 
 all: $(TARGET)
 
-$(TARGET): $(SRCS) $(SRCDIR)/pa.h | $(BINDIR) config.h
+$(TARGET): $(SRCS) audio.h | $(BINDIR) config.h
 	@echo "CC $(SRCS) -> $@"
-	@$(CC) $(CPPFLAGS) $(CFLAGS) $(INCS) -o $@ $(SRCS) $(LDFLAGS) $(LDLIBS)
+	@$(CC) $(CFLAGS) -o $@ $(SRCS) $(LDLIBS)
 
 $(BINDIR):
 	@mkdir -p $@
