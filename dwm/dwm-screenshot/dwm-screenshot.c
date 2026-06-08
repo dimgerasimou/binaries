@@ -19,25 +19,33 @@
 #define DEFAULT_BORDERSIZE 3
 #define DEFAULT_COLOR      0xFFEEEEEE /* ARGB Value */
 #define DEFAULT_FSCR       0
+#define DEFAULT_CLIP       0
 
 static const char scrdirpath[]   = "~/Pictures/Screenshots/";
 static const char imgextension[] = "png";
 
+struct maimargs {
+	char color[44];      /* --color=R,G,B,A   */
+	char bordersize[32]; /* --bordersize=N    */
+};
+
 /* function defs */
 static void  apparg(const char *argv[], const char *arg, size_t *i, const size_t argc);
-static void  argvmaim(const char *argv[], const size_t argc, const char *path, const unsigned int bsz, const unsigned int argb, const unsigned int fscr);
+static void  argvmaim(const char *argv[], const size_t argc, const char *path, const unsigned int bsz, const unsigned int argb, const unsigned int fscr, struct maimargs *buf);
 static void  die(const char *fmt, ...);
 static char *expandpath(const char *dir);
 static int   fexecvp(const char *argv[]);
+static int   fexecvp_pipe(const char *left[], const char *right[]);
 static char *getpath(const char *dir);
 static int   isdir(const char *path);
 static int   mkdir_p(const char *path, const mode_t mode);
-static int   notify(void);
-static void  parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *fscr);
+static int   notify(const char *body);
+static void  parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *fscr, unsigned int *clip);
 static int   parsergb(const char *s, unsigned int *out);
 static int   parseuint(const char *s, unsigned int *out, const int base);
 static char *setfilepath(const char *dir);
 static void  usage(void);
+static int   waitstatus(pid_t pid);
 
 void
 apparg(const char *argv[], const char *arg, size_t *i, const size_t argc)
@@ -50,10 +58,9 @@ apparg(const char *argv[], const char *arg, size_t *i, const size_t argc)
 
 void
 argvmaim(const char *argv[], const size_t argc, const char *path, 
-         const unsigned int bsz, const unsigned int argb, const unsigned int fscr)
+         const unsigned int bsz, const unsigned int argb, const unsigned int fscr,
+         struct maimargs *buf)
 {
-	char c[44];
-	char b[32];
 	size_t i = 0;
 	int n;
 
@@ -66,16 +73,17 @@ argvmaim(const char *argv[], const size_t argc, const char *path,
 	for (size_t k = 0; k < 4u; k++)
 		chan[k] = (chan[k] * 1000000u + 127u) / 255u; /* round to 6 dp */
 
-	n = snprintf(c, sizeof(c), "--color=%u.%06u,%u.%06u,%u.%06u,%u.%06u",
+	n = snprintf(buf->color, sizeof(buf->color),
+	             "--color=%u.%06u,%u.%06u,%u.%06u,%u.%06u",
 	             chan[0] / 1000000u, chan[0] % 1000000u,
 	             chan[1] / 1000000u, chan[1] % 1000000u,
 	             chan[2] / 1000000u, chan[2] % 1000000u,
 	             chan[3] / 1000000u, chan[3] % 1000000u);
-	if (n < 0 || (size_t)n >= sizeof(c))
+	if (n < 0 || (size_t)n >= sizeof(buf->color))
 		die("snprintf:");
 
-	n = snprintf(b, sizeof(b), "--bordersize=%u", bsz);
-	if (n < 0 || (size_t)n >= sizeof(b))
+	n = snprintf(buf->bordersize, sizeof(buf->bordersize), "--bordersize=%u", bsz);
+	if (n < 0 || (size_t)n >= sizeof(buf->bordersize))
 		die("snprintf:");
 
 	apparg(argv, "maim", &i, argc);
@@ -84,11 +92,13 @@ argvmaim(const char *argv[], const size_t argc, const char *path,
 
 	if (!fscr) {
 		apparg(argv, "--select", &i, argc);
-		apparg(argv, b, &i, argc);
-		apparg(argv, c, &i, argc);
+		apparg(argv, buf->bordersize, &i, argc);
+		apparg(argv, buf->color, &i, argc);
 	}
 
-	apparg(argv, path, &i, argc);
+	if (path)
+		apparg(argv, path, &i, argc);
+
 	argv[i] = NULL;
 }
 
@@ -256,10 +266,26 @@ expandpath(const char *dir)
 }
 
 int
+waitstatus(pid_t pid)
+{
+	int s;
+
+	while (waitpid(pid, &s, 0) < 0) {
+		if (errno == EINTR)
+			continue;
+		return -1; /* lost child */
+	}
+
+	if (WIFEXITED(s))
+		return WEXITSTATUS(s);
+	return 128 + WTERMSIG(s);
+}
+
+int
 fexecvp(const char *argv[])
 {
 	pid_t pid;
-	int s;
+	int r;
 
 	pid = fork();
 	if (pid < 0)
@@ -271,18 +297,57 @@ fexecvp(const char *argv[])
 		_exit(127);
 	}
 
-	do {
-		if (waitpid(pid, &s, 0) < 0) {
-			if (errno == EINTR)
-				continue;
-			return 1;
-		}
-		break;
-	} while (1);
+	r = waitstatus(pid);
+	return r < 0 ? 1 : r;
+}
 
-	if (WIFEXITED(s))
-		return WEXITSTATUS(s);
-	return 128 + WTERMSIG(s);
+int
+fexecvp_pipe(const char *left[], const char *right[])
+{
+	int fd[2];
+	pid_t pl, pr;
+	int rl, rr;
+
+	if (pipe(fd) < 0)
+		die("pipe:");
+
+	pl = fork();
+	if (pl < 0)
+		die("fork:");
+	if (!pl) {
+		/* left: stdout -> pipe */
+		close(fd[0]);
+		if (dup2(fd[1], STDOUT_FILENO) < 0)
+			_exit(127);
+		close(fd[1]);
+		execvp(*left, (char **)left);
+		perror("execvp");
+		_exit(127);
+	}
+
+	pr = fork();
+	if (pr < 0)
+		die("fork:");
+	if (!pr) {
+		/* right: stdin <- pipe */
+		close(fd[1]);
+		if (dup2(fd[0], STDIN_FILENO) < 0)
+			_exit(127);
+		close(fd[0]);
+		execvp(*right, (char **)right);
+		perror("execvp");
+		_exit(127);
+	}
+
+	close(fd[0]);
+	close(fd[1]);
+
+	rl = waitstatus(pl);
+	rr = waitstatus(pr);
+
+	if (rl < 0 || rr < 0)
+		return 1;
+	return rl ? rl : rr;
 }
 
 char *
@@ -371,14 +436,14 @@ mkdir_p(const char *path, const mode_t mode)
 }
 
 int
-notify(void)
+notify(const char *body)
 {
 	NotifyNotification *n;
 
 	if (!notify_init("dwm-screenshot"))
 		return 1;
 
-	n = notify_notification_new(" dwm-screenshot", "Screenshot taken", "display");
+	n = notify_notification_new(" dwm-screenshot", body, "display");
 	if (!n) {
 		notify_uninit();
 		return 1;
@@ -440,11 +505,11 @@ parseuint(const char *s, unsigned int *out, const int base)
 void
 usage(void)
 {
-	fputs("usage: dwm-screenshot [-b bordersize] [-c #RRGGBB] [-o 0xAA] [-fh]\n", stderr);
+	fputs("usage: dwm-screenshot [-b bordersize] [-c #RRGGBB] [-o 0xAA] [-Cfh]\n", stderr);
 }
 
 void
-parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *fscr)
+parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *fscr, unsigned int *clip)
 {
 	unsigned int v;
 
@@ -471,6 +536,8 @@ parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, u
 			*argb = (*argb & 0x00FFFFFFu) | (v << 24);
 		} else if (!strcmp(argv[i], "-f")) {
 			*fscr = 1;
+		} else if (!strcmp(argv[i], "-C")) {
+			*clip = 1;
 		} else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
 			usage();
 			exit(0);
@@ -515,24 +582,36 @@ setfilepath(const char *dir)
 int
 main(int argc, char *argv[])
 {
-	char *path;
 	const char *margv[16];
+	const char *body;
+	struct maimargs mb;
 	int n;
 
 	unsigned int bsz  = DEFAULT_BORDERSIZE;
 	unsigned int argb = DEFAULT_COLOR;
 	unsigned int fscr = DEFAULT_FSCR;
+	unsigned int clip = DEFAULT_CLIP;
 
-	parseargs(argc, argv, &bsz, &argb, &fscr);
+	parseargs(argc, argv, &bsz, &argb, &fscr, &clip);
 
-	path = getpath(scrdirpath);
+	if (clip) {
+		const char *xargv[] = {
+			"xclip", "-selection", "clipboard", "-t", "image/png", NULL
+		};
 
-	argvmaim(margv, sizeof(margv) / sizeof(margv[0]), path, bsz, argb, fscr);
+		argvmaim(margv, sizeof(margv) / sizeof(margv[0]), NULL, bsz, argb, fscr, &mb);
+		n = fexecvp_pipe(margv, xargv);
+		body = "Copied to clipboard";
+	} else {
+		char *path = getpath(scrdirpath);
 
-	n = fexecvp(margv);
-	free(path);
+		argvmaim(margv, sizeof(margv) / sizeof(margv[0]), path, bsz, argb, fscr, &mb);
+		n = fexecvp(margv);
+		free(path);
+		body = "Screenshot taken";
+	}
 
-	if (!n && notify())
+	if (!n && notify(body))
 		fputs("dwm-screenshot: notification failed\n", stderr);
 
 	return n;

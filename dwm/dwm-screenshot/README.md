@@ -13,6 +13,7 @@ A lightweight screenshot utility that wraps `maim` with customizable selection b
 ## Dependencies
 
 - [maim](https://github.com/naelstrof/maim) - Screenshot utility
+- [xclip](https://github.com/astrand/xclip) - Clipboard support (for `-C`)
 - libnotify - Desktop notifications
 - X11
 
@@ -32,7 +33,7 @@ make install PREFIX=/usr/local
 ## Usage
 
 ```
-dwm-screenshot [-b bordersize] [-c #RRGGBB] [-o 0xAA] [-fh]
+dwm-screenshot [-b bordersize] [-c #RRGGBB] [-o 0xAA] [-Cfh]
 ```
 
 ### Options
@@ -40,6 +41,7 @@ dwm-screenshot [-b bordersize] [-c #RRGGBB] [-o 0xAA] [-fh]
 - `-b <size>` - Selection border size in pixels (default: 3)
 - `-c #RRGGBB` - Border color in hex RGB format (default: #EEEEEE)
 - `-o 0xAA` - Border opacity in hex (0x00-0xFF, default: 0xFF)
+- `-C` - Copy to clipboard instead of saving to a file (requires `xclip`)
 - `-f` - Full-screen capture (skips selection)
 - `-h, --help` - Show usage information
 
@@ -51,6 +53,12 @@ dwm-screenshot
 
 # Full-screen capture
 dwm-screenshot -f
+
+# Select a region and copy it to the clipboard (no file written)
+dwm-screenshot -C
+
+# Full screen straight to the clipboard
+dwm-screenshot -C -f
 
 # Custom border: 5px, red, 50% opacity
 dwm-screenshot -b 5 -c '#FF0000' -o 0x80
@@ -87,11 +95,13 @@ Add to your `config.h`:
 ```c
 static const char *screenshot[] = { "dwm-screenshot", NULL };
 static const char *screenshotfull[] = { "dwm-screenshot", "-f", NULL };
+static const char *screenshotclip[] = { "dwm-screenshot", "-C", NULL };
 
 static Key keys[] = {
     /* ... */
     { MODKEY,               XK_Print, spawn, {.v = screenshot } },
     { MODKEY|ShiftMask,     XK_Print, spawn, {.v = screenshotfull } },
+    { MODKEY|ControlMask,   XK_Print, spawn, {.v = screenshotclip } },
 };
 ```
 
