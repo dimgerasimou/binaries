@@ -53,11 +53,15 @@ dwm-screenshot
 dwm-screenshot -f
 
 # Custom border: 5px, red, 50% opacity
-dwm-screenshot -b 5 -c #FF0000 -o 0x80
+dwm-screenshot -b 5 -c '#FF0000' -o 0x80
 
 # Thin blue border
-dwm-screenshot -b 1 -c #0088FF
+dwm-screenshot -b 1 -c '#0088FF'
 ```
+
+> Note: quote the color (`'#RRGGBB'`). An unquoted `#` starts a comment in
+> POSIX shells, so `-c #FF0000` would be stripped before `dwm-screenshot`
+> ever sees it.
 
 ## Configuration
 

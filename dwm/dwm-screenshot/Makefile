@@ -1,5 +1,5 @@
 CC       ?= cc
-CFLAGS   ?= -Wall -Wextra -Wno-deprecated-declarations -Os
+CFLAGS   ?= -std=c99 -Wall -Wextra -Os
 CPPFLAGS ?=
 LDLIBS   ?=
 
@@ -11,8 +11,11 @@ SRC      := $(BIN).c
 TARGET   := $(BINDIR)/$(BIN)
 
 PKG      := libnotify
-CPPFLAGS += $(shell pkg-config --cflags $(PKG) 2>/dev/null)
-LDLIBS   += $(shell pkg-config --libs   $(PKG) 2>/dev/null)
+ifneq ($(shell pkg-config --exists $(PKG) && echo ok),ok)
+$(error $(PKG) not found - install its development package)
+endif
+CPPFLAGS += $(shell pkg-config --cflags $(PKG))
+LDLIBS   += $(shell pkg-config --libs   $(PKG))
 
 all: $(TARGET)
 

@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L /* strdup, localtime_r */
+
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
@@ -33,7 +35,7 @@ static int   mkdir_p(const char *path, const mode_t mode);
 static int   notify(void);
 static void  parseargs(const int argc, char *argv[], unsigned int *bsz, unsigned int *argb, unsigned int *fscr);
 static int   parsergb(const char *s, unsigned int *out);
-static int   parseuint(const char *s, unsigned int *out, const unsigned int base);
+static int   parseuint(const char *s, unsigned int *out, const int base);
 static char *setfilepath(const char *dir);
 static void  usage(void);
 
@@ -50,16 +52,25 @@ void
 argvmaim(const char *argv[], const size_t argc, const char *path, 
          const unsigned int bsz, const unsigned int argb, const unsigned int fscr)
 {
-	static char c[44];
-	static char b[32];
+	char c[44];
+	char b[32];
 	size_t i = 0;
 	int n;
 
-	n = snprintf(c, sizeof(c), "--color=%.6f,%.6f,%.6f,%.6f",
-	             ((argb >> 16) & 0xFFu) / 255.0,
-	             ((argb >>  8) & 0xFFu) / 255.0,
-	             ((argb >>  0) & 0xFFu) / 255.0,
-	             ((argb >> 24) & 0xFFu) / 255.0);
+	unsigned int chan[4] = {
+		(argb >> 16) & 0xFFu, /* R */
+		(argb >>  8) & 0xFFu, /* G */
+		(argb >>  0) & 0xFFu, /* B */
+		(argb >> 24) & 0xFFu, /* A */
+	};
+	for (size_t k = 0; k < 4u; k++)
+		chan[k] = (chan[k] * 1000000u + 127u) / 255u; /* round to 6 dp */
+
+	n = snprintf(c, sizeof(c), "--color=%u.%06u,%u.%06u,%u.%06u,%u.%06u",
+	             chan[0] / 1000000u, chan[0] % 1000000u,
+	             chan[1] / 1000000u, chan[1] % 1000000u,
+	             chan[2] / 1000000u, chan[2] % 1000000u,
+	             chan[3] / 1000000u, chan[3] % 1000000u);
 	if (n < 0 || (size_t)n >= sizeof(c))
 		die("snprintf:");
 
@@ -281,8 +292,6 @@ getpath(const char *dir)
 	char *path;
 
 	dirpath = expandpath(dir);
-	if (!dirpath)
-		return NULL;
 
 	if (mkdir_p(dirpath, 0755))
 		die("failed to create directory: %s", dirpath);
@@ -410,7 +419,7 @@ parsergb(const char *s, unsigned int *out)
 }
 
 int
-parseuint(const char *s, unsigned int *out, const unsigned int base)
+parseuint(const char *s, unsigned int *out, const int base)
 {
 	char *end;
 	unsigned long v;
@@ -517,18 +526,14 @@ main(int argc, char *argv[])
 	parseargs(argc, argv, &bsz, &argb, &fscr);
 
 	path = getpath(scrdirpath);
-	if (!path)
-		die("getpath() failed");
 
 	argvmaim(margv, sizeof(margv) / sizeof(margv[0]), path, bsz, argb, fscr);
 
 	n = fexecvp(margv);
 	free(path);
 
-	if (!n) {
-		if (notify())
-			die("notify failed");
-	}
+	if (!n && notify())
+		fputs("dwm-screenshot: notification failed\n", stderr);
 
 	return n;
 }
