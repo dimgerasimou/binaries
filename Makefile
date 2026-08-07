@@ -1,6 +1,8 @@
 # binaries - build/install wrapper for all projects
 # See LICENSE file for copyright and license details.
 
+MAKEFLAGS += --no-print-directory
+
 PREFIX  ?= $(HOME)/.local
 
 TARGETS := audio-ctl eq-select selshot sink-select wifi-prompt xkbnext

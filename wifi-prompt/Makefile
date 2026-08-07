@@ -12,8 +12,11 @@ TARGET  = $(BINDIR)/$(BIN)
 
 all: $(TARGET)
 
-$(TARGET): $(SRC) input.h output.h | $(BINDIR)
+$(TARGET): $(SRC) input.h output.h config.h | $(BINDIR)
 	$(CC) $(CFLAGS) -o $@ $(SRC) $(LDFLAGS) $(LDLIBS)
+
+config.h:
+	cp config.def.h config.h
 
 $(BINDIR):
 	mkdir -p $@

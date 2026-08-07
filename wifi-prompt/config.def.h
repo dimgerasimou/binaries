@@ -1,8 +1,2 @@
 /* menu command; extra args passed on the command line are forwarded to it */
 static const char menucmd[] = "dmenu";
-
-/* Maximum number of presets */
-#define MAX_PRESETS 64
-
-/* Buffer size for reading lines */
-#define BUFSIZE 512

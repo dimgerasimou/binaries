@@ -20,13 +20,23 @@ By default, installs to `~/.local/bin`. Override with:
 make install PREFIX=/usr/local
 ```
 
+## Usage
+
+```
+eq-select [dmenu options...]
+```
+
+Any arguments are passed straight through to `menucmd`, after eq-select's own
+`-p` prompt flag. Use this to set fonts, colors, line count, or to switch to
+a compatible menu (e.g. `rofi -dmenu`) without rebuilding.
+
 ## Configuration
 
 Edit `config.h` to customize:
 
 ```c
-/* dmenu configuration */
-static const char *dmenu[] = { "dmenu", "-c", "-l", "5", "-p", "Select equalizer preset:", "-nn", NULL };
+/* menu command; extra args passed on the command line are forwarded to it */
+static const char menucmd[] = "dmenu";
 
 /* Maximum number of presets */
 #define MAX_PRESETS 64
@@ -39,7 +49,7 @@ After editing, run `make clean && make` to rebuild with new settings.
 Add to your `config.h`:
 
 ```c
-static const char *eqselect[] = { "eq-select", NULL };
+static const char *eqselect[] = { "eq-select", "-c", "-l", "5", "-nn", NULL };
 
 static Key keys[] = {
     /* ... */

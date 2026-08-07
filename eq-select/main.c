@@ -102,17 +102,41 @@ parsepresets(void)
 		die("%s: no output presets found", argv0);
 }
 
+static char **
+makemenuargv(int argc, char *argv[])
+{
+	static const char *base[] = { menucmd, "-p", "Select equalizer preset:" };
+	const size_t basec = sizeof(base) / sizeof(*base);
+	char **v;
+	size_t i;
+
+	v = malloc((basec + (size_t)argc + 1) * sizeof(*v));
+	if (!v)
+		die("%s: malloc:", argv0);
+
+	for (i = 0; i < basec; i++)
+		v[i] = (char *)base[i];
+	for (i = 0; i < (size_t)argc; i++)
+		v[basec + i] = argv[i];
+	v[basec + i] = NULL;
+
+	return v;
+}
+
 static char *
-dmenuselect(void)
+dmenuselect(int argc, char *argv[])
 {
 	int pin[2], pout[2], status;
 	pid_t pid;
 	FILE *fin, *fout;
 	char buf[BUFSIZE], *result, *nl;
+	char **menuargv;
 	size_t i;
 
 	if (pipe(pin) == -1 || pipe(pout) == -1)
 		die("%s: pipe:", argv0);
+
+	menuargv = makemenuargv(argc, argv);
 
 	switch (pid = fork()) {
 	case -1:
@@ -126,8 +150,8 @@ dmenuselect(void)
 		close(pin[1]);
 		close(pout[0]);
 		close(pout[1]);
-		execvp(dmenu[0], (char **)dmenu);
-		die("%s: execvp %s:", argv0, dmenu[0]);
+		execvp(menuargv[0], menuargv);
+		die("%s: execvp %s:", argv0, menuargv[0]);
 		break;
 	default:
 		/* parent: write presets, read selection */
@@ -154,6 +178,7 @@ dmenuselect(void)
 		fclose(fout);
 
 		waitpid(pid, &status, 0);
+		free(menuargv);
 
 		if (!result || !WIFEXITED(status) || WEXITSTATUS(status)) {
 			free(result);
@@ -177,12 +202,6 @@ loadpreset(const char *preset)
 		die("%s: system:", argv0);
 }
 
-static void
-usage(void)
-{
-	die("usage: %s", argv0);
-}
-
 int
 main(int argc, char *argv[])
 {
@@ -190,12 +209,9 @@ main(int argc, char *argv[])
 
 	argv0 = argv[0];
 
-	if (argc != 1)
-		usage();
-
 	parsepresets();
-	
-	if (!(selection = dmenuselect())) {
+
+	if (!(selection = dmenuselect(argc - 1, argv + 1))) {
 		cleanup();
 		return 0;
 	}

@@ -4,9 +4,17 @@ Prompts for a wallpaper via dmenu and applies it.
 
 ## Usage
 
+```
+wallpaper-select [dmenu options...]
+```
+
 Executing the script prompts you to select a wallpaper from
 `$HOME/.local/share/wallpapers`, converts it to jpg if needed, saves it as
 `$HOME/.local/state/dwm/wallpaper.jpg`, and sets it with `feh --bg-fill`.
+
+Any arguments are passed straight through to the menu command, after its own
+`-p` prompt flag. Set `MENUCMD` to use a compatible menu other than dmenu
+(e.g. `MENUCMD="rofi -dmenu" wallpaper-select`).
 
 ## Dependencies
 
@@ -27,7 +35,7 @@ install -Dm755 wallpaper-select "$HOME/.local/bin/wallpaper-select"
 Add to your `config.h`:
 
 ```c
-static const char *wallpaperselect[] = { "wallpaper-select", NULL };
+static const char *wallpaperselect[] = { "wallpaper-select", "-c", "-l", "10", NULL };
 
 static Key keys[] = {
     /* ... */

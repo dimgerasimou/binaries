@@ -1,6 +1,8 @@
 #!/bin/sh
 
-wallpaper="$(ls $HOME/.local/share/wallpapers | dmenu -c -l 10 -p "Select your wallpaper:")"
+menucmd=${MENUCMD:-dmenu}
+
+wallpaper="$(ls $HOME/.local/share/wallpapers | $menucmd -p "Select your wallpaper:" "$@")"
 
 if [[ $wallpaper == "" ]]; then
 	exit

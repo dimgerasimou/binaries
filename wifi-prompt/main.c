@@ -23,6 +23,8 @@ typedef struct {
 	GString            *message;
 	GString            *error;
 	NMActiveConnection *active_connection;
+	int                argc;
+	char               **argv;
 } NMDetails;
 
 /* function declerations */
@@ -151,7 +153,7 @@ add_connection(NMDetails *nm)
 	ap_rsn_flags = nm_access_point_get_rsn_flags(nm->ap);
 
 	if ((ap_wpa_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK) || (ap_rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK)) {
-		password = get_password();
+		password = get_password(nm->argc, nm->argv);
 		g_object_set(G_OBJECT(s_wsecurity),
 			     NM_SETTING_WIRELESS_SECURITY_KEY_MGMT, "wpa-psk",
 			     NM_SETTING_WIRELESS_SECURITY_PSK, password, NULL);
@@ -378,7 +380,7 @@ get_access_point(NMDetails *nm)
 	}
 
 	string = aps_to_string(aps);
-	return_index = get_ap_input(string);
+	return_index = get_ap_input(string, nm->argc, nm->argv);
 
 	if (return_index != -1) {
 		nm->ap = g_ptr_array_index(aps, return_index);
@@ -582,11 +584,14 @@ get_wifi_device(NMDetails *nm)
 }
 
 int
-main()
+main(int argc, char *argv[])
 {
 	NMDetails *nm = NULL;
 
 	init_nm_client(&nm);
+	nm->argc = argc - 1;
+	nm->argv = argv + 1;
+
 	if (nm->terminate) {
 		terminate_client(nm);
 		return 0;
