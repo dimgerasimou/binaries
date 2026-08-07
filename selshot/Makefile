@@ -6,7 +6,7 @@ LDLIBS   ?=
 PREFIX   ?= $(HOME)/.local
 BINDIR   := bin
 
-BIN      := dwm-screenshot
+BIN      := selshot
 SRC      := $(BIN).c
 TARGET   := $(BINDIR)/$(BIN)
 

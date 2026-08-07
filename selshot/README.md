@@ -1,4 +1,4 @@
-# dwm-screenshot
+# selshot
 
 A lightweight screenshot utility that wraps `maim` with customizable selection borders and automatic file organization.
 
@@ -33,7 +33,7 @@ make install PREFIX=/usr/local
 ## Usage
 
 ```
-dwm-screenshot [-b bordersize] [-c #RRGGBB] [-o 0xAA] [-Cfh]
+selshot [-b bordersize] [-c #RRGGBB] [-o 0xAA] [-Cfh]
 ```
 
 ### Options
@@ -49,26 +49,26 @@ dwm-screenshot [-b bordersize] [-c #RRGGBB] [-o 0xAA] [-Cfh]
 
 ```sh
 # Interactive selection with defaults
-dwm-screenshot
+selshot
 
 # Full-screen capture
-dwm-screenshot -f
+selshot -f
 
 # Select a region and copy it to the clipboard (no file written)
-dwm-screenshot -C
+selshot -C
 
 # Full screen straight to the clipboard
-dwm-screenshot -C -f
+selshot -C -f
 
 # Custom border: 5px, red, 50% opacity
-dwm-screenshot -b 5 -c '#FF0000' -o 0x80
+selshot -b 5 -c '#FF0000' -o 0x80
 
 # Thin blue border
-dwm-screenshot -b 1 -c '#0088FF'
+selshot -b 1 -c '#0088FF'
 ```
 
 > Note: quote the color (`'#RRGGBB'`). An unquoted `#` starts a comment in
-> POSIX shells, so `-c #FF0000` would be stripped before `dwm-screenshot`
+> POSIX shells, so `-c #FF0000` would be stripped before `selshot`
 > ever sees it.
 
 ## Configuration
@@ -93,9 +93,9 @@ The screenshot directory supports:
 Add to your `config.h`:
 
 ```c
-static const char *screenshot[] = { "dwm-screenshot", NULL };
-static const char *screenshotfull[] = { "dwm-screenshot", "-f", NULL };
-static const char *screenshotclip[] = { "dwm-screenshot", "-C", NULL };
+static const char *screenshot[] = { "selshot", NULL };
+static const char *screenshotfull[] = { "selshot", "-f", NULL };
+static const char *screenshotclip[] = { "selshot", "-C", NULL };
 
 static Key keys[] = {
     /* ... */
