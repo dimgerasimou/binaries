@@ -1,4 +1,4 @@
-# dwm-xkbnext
+# xkbnext
 
 A lightweight utility that provides the ability to the user to change XKB layouts.
 
@@ -36,7 +36,7 @@ If set, runs a hook that can be used to notify other applications about the layo
 Add to your `config.h`:
 
 ```c
-static const char *xkbnext[] = { "dwm-xkbnext", NULL };
+static const char *xkbnext[] = { "xkbnext", NULL };
 
 static Key keys[] = {
     /* ... */

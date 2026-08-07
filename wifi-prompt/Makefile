@@ -7,7 +7,7 @@ PREFIX  ?= $(HOME)/.local
 BINDIR  ?= bin
 
 SRC     = main.c input.c output.c
-BIN     = dmenu-wifi-prompt
+BIN     = wifi-prompt
 TARGET  = $(BINDIR)/$(BIN)
 
 all: $(TARGET)

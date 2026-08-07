@@ -6,8 +6,8 @@ PREFIX   ?= $(HOME)/.local
 BINDIR   := bin
 OBJDIR   := obj
 
-BIN      := dmenu-sink-select
-SRCS     := dmenu-sink-select.c sink.c
+BIN      := sink-select
+SRCS     := sink-select.c sink.c
 OBJS     := $(SRCS:%.c=$(OBJDIR)/%.o)
 TARGET   := $(BINDIR)/$(BIN)
 

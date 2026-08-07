@@ -50,7 +50,7 @@ log_string(GString *string)
 	timeinfo = localtime(&rawtime);
 
 	fprintf(fp, "%d-%d-%d %d:%d:%d %s\n%s\n", timeinfo->tm_year+1900,
-	        timeinfo->tm_mon+1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, "dmenu-wifi-prompt", string->str);
+	        timeinfo->tm_mon+1, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, "wifi-prompt", string->str);
 	
 	if (string)
 		g_string_free(string, TRUE);
@@ -64,7 +64,7 @@ notify(char *summary, char *body, NotifyUrgency urgency, gboolean format_summary
 	NotifyNotification *notification;
 	char *sum;
 
-	notify_init("dmenu-wifi-prompt");
+	notify_init("wifi-prompt");
 	
 	if (format_summary)
 		sum = get_summary(summary, body);

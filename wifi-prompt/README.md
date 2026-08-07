@@ -1,4 +1,4 @@
-# Wifi prompt
+# wifi-prompt
 
 ## Usage
 

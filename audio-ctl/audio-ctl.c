@@ -20,7 +20,7 @@ die(const char *fmt, ...)
 	va_list ap;
 	int saved_errno = errno;
 
-	fputs("dwm-audio: ", stderr);
+	fputs("audio-ctl: ", stderr);
 
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);

@@ -1,4 +1,4 @@
-# dmenu-sink-select
+# sink-select
 
 A lightweight PulseAudio sink selector using dmenu for quick audio output device switching.
 
@@ -34,7 +34,7 @@ make install PREFIX=/usr/local
 ## Usage
 
 ```
-dmenu-sink-select [dmenu options...]
+sink-select [dmenu options...]
 ```
 
 All arguments are passed directly to dmenu, allowing full customization of the menu appearance.
@@ -43,16 +43,16 @@ All arguments are passed directly to dmenu, allowing full customization of the m
 
 ```sh
 # Basic usage with default dmenu appearance
-dmenu-sink-select
+sink-select
 
 # Custom dmenu font and colors
-dmenu-sink-select -fn 'monospace:size=12' -nb '#1e1e2e' -nf '#cdd6f4'
+sink-select -fn 'monospace:size=12' -nb '#1e1e2e' -nf '#cdd6f4'
 
 # Use with rofi instead of dmenu (make sure to set menucmd = "rofi" at config.h)
-dmenu-sink-select -dmenu
+sink-select -dmenu
 
 # Case-insensitive matching
-dmenu-sink-select -i
+sink-select -i
 ```
 
 ## Configuration
@@ -76,13 +76,13 @@ After editing, run `make clean && make` to rebuild with new settings.
 To hide specific audio devices from the menu, create an ignore list at:
 
 ```
-$XDG_CONFIG_HOME/dmenu/dmenu-sink-select/ignore-sinks
+$XDG_CONFIG_HOME/sink-select/ignore-sinks
 ```
 
 Or if `XDG_CONFIG_HOME` is not set:
 
 ```
-~/.config/dmenu/dmenu-sink-select/ignore-sinks
+~/.config/sink-select/ignore-sinks
 ```
 
 Add one sink description per line (exact match required):
@@ -97,7 +97,7 @@ Dummy Output
 Add to your `config.h`:
 
 ```c
-static const char *sinkselector[] = { "dmenu-sink-select", NULL };
+static const char *sinkselector[] = { "sink-select", NULL };
 
 static Key keys[] = {
     /* ... */

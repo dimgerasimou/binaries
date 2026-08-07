@@ -19,7 +19,7 @@ die(const char *fmt, ...)
 	va_list ap;
 	int saved_errno = errno;
 
-	fputs("dwm-xkbnext: ", stderr);
+	fputs("xkbnext: ", stderr);
 
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);

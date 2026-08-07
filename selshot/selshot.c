@@ -108,7 +108,7 @@ die(const char *fmt, ...)
 	va_list ap;
 	int saved_errno = errno;
 
-	fputs("dwm-screenshot: ", stderr);
+	fputs("selshot: ", stderr);
 
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
@@ -440,10 +440,10 @@ notify(const char *body)
 {
 	NotifyNotification *n;
 
-	if (!notify_init("dwm-screenshot"))
+	if (!notify_init("selshot"))
 		return 1;
 
-	n = notify_notification_new(" dwm-screenshot", body, "display");
+	n = notify_notification_new(" selshot", body, "display");
 	if (!n) {
 		notify_uninit();
 		return 1;
@@ -505,7 +505,7 @@ parseuint(const char *s, unsigned int *out, const int base)
 void
 usage(void)
 {
-	fputs("usage: dwm-screenshot [-b bordersize] [-c #RRGGBB] [-o 0xAA] [-Cfh]\n", stderr);
+	fputs("usage: selshot [-b bordersize] [-c #RRGGBB] [-o 0xAA] [-Cfh]\n", stderr);
 }
 
 void
@@ -612,7 +612,7 @@ main(int argc, char *argv[])
 	}
 
 	if (!n && notify(body))
-		fputs("dwm-screenshot: notification failed\n", stderr);
+		fputs("selshot: notification failed\n", stderr);
 
 	return n;
 }

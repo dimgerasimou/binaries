@@ -10,5 +10,5 @@ Usage and Dependencies are analyzed for each binary in the `README.md` files in 
 
 ## Installation - Uninstallation
 
-Just run `./install.sh` to install all or `./install.sh -r` to uninstall all. For installing scripts for a single application, just run the
-corresponding install script in the application's binaries' folder.
+Just run `make install` to install all or `make uninstall` to uninstall all. To install a single binary, run
+`make install` in its folder. Override `PREFIX` or `DESTDIR` as usual.

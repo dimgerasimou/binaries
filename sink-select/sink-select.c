@@ -13,7 +13,7 @@
 enum { TO_CHILD, FROM_CHILD };
 enum { RD, WR };
 
-static const char confpath[] = "dmenu/dmenu-sink-select/ignore-sinks";
+static const char confpath[] = "sink-select/ignore-sinks";
 
 static void   die(const char *fmt, ...);
 static int    igncheck(FILE *fp, char *s);
@@ -29,7 +29,7 @@ die(const char *fmt, ...)
 	va_list ap;
 	int saved_errno = errno;
 
-	fputs("dmenu-sink-select: ", stderr);
+	fputs("sink-select: ", stderr);
 
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);

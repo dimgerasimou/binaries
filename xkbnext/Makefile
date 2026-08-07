@@ -5,8 +5,8 @@ LDLIBS   ?= -lX11
 PREFIX   ?= $(HOME)/.local
 BINDIR   := bin
 
-BIN      := dwm-xkbnext
-SRC      := dwm-xkbnext.c
+BIN      := xkbnext
+SRC      := xkbnext.c
 TARGET   := $(BINDIR)/$(BIN)
 
 all: $(TARGET)

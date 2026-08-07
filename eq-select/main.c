@@ -1,4 +1,4 @@
-/* dmenu-equalizer-select - select easyeffects preset via dmenu
+/* eq-select - select easyeffects preset via dmenu
  * depends: dmenu, easyeffects
  * 
  * Copy config.def.h to config.h and edit to customize

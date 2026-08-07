@@ -1,4 +1,4 @@
-# dmenu-equalizer-select - select easyeffects preset
+# eq-select - select easyeffects preset
 
 CC      ?= cc
 CFLAGS  ?= -Wall -Wextra -Wno-deprecated-declarations -Os
@@ -9,7 +9,7 @@ PREFIX  ?= $(HOME)/.local
 BINDIR  ?= bin
 
 SRC     = main.c
-BIN     = dmenu-equalizer-select
+BIN     = eq-select
 TARGET  = $(BINDIR)/$(BIN)
 
 all: $(TARGET)
