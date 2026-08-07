@@ -152,14 +152,22 @@ add_connection(NMDetails *nm)
 	ap_wpa_flags = nm_access_point_get_wpa_flags(nm->ap);
 	ap_rsn_flags = nm_access_point_get_rsn_flags(nm->ap);
 
-	if ((ap_wpa_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK) || (ap_rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK)) {
+	if (ap_rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_SAE) {
+		/* WPA3-Personal, and WPA2/WPA3-Personal transition mode (the AP
+		 * advertises both PSK and SAE; SAE takes priority). */
+		password = get_password(nm->argc, nm->argv);
+		g_object_set(G_OBJECT(s_wsecurity),
+			     NM_SETTING_WIRELESS_SECURITY_KEY_MGMT, "sae",
+			     NM_SETTING_WIRELESS_SECURITY_PSK, password, NULL);
+		nm_connection_add_setting(nm->connection, NM_SETTING(s_wsecurity));
+	} else if ((ap_wpa_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK) || (ap_rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK)) {
 		password = get_password(nm->argc, nm->argv);
 		g_object_set(G_OBJECT(s_wsecurity),
 			     NM_SETTING_WIRELESS_SECURITY_KEY_MGMT, "wpa-psk",
 			     NM_SETTING_WIRELESS_SECURITY_PSK, password, NULL);
 		nm_connection_add_setting(nm->connection, NM_SETTING(s_wsecurity));
-	} else if ((ap_wpa_flags = NM_802_11_AP_SEC_NONE) && (ap_wpa_flags = NM_802_11_AP_SEC_NONE)) {
-
+	} else if (ap_wpa_flags == NM_802_11_AP_SEC_NONE && ap_rsn_flags == NM_802_11_AP_SEC_NONE) {
+		/* open network, no security setting to add */
 	} else {
 		if(!nm->message)
 			nm->message = g_string_new("");
@@ -401,6 +409,7 @@ get_ap_connection(NMDetails *nm)
 	NMConnection              *connection;
 	NMSettingWireless         *wireless_setting;
 	NMSettingWirelessSecurity *wireless_security;
+	const char                *key_mgmt;
 	guint32                    ap_wpa_flags, ap_rsn_flags;
 
 	ssid         = get_ssid(nm->ap);
@@ -426,11 +435,16 @@ get_ap_connection(NMDetails *nm)
 		if(!g_string_equal(ssid, ssid_temp))
 			continue;
 
-		if ((ap_wpa_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK) || (ap_rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK)) {
-			if (strcmp(nm_setting_wireless_security_get_key_mgmt(wireless_security), "wpa-psk"))
+		key_mgmt = wireless_security ? nm_setting_wireless_security_get_key_mgmt(wireless_security) : NULL;
+
+		if (ap_rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_SAE) {
+			if (!key_mgmt || strcmp(key_mgmt, "sae"))
+				continue;
+		} else if ((ap_wpa_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK) || (ap_rsn_flags & NM_802_11_AP_SEC_KEY_MGMT_PSK)) {
+			if (!key_mgmt || strcmp(key_mgmt, "wpa-psk"))
 				continue;
 		} else {
-			if (nm_setting_wireless_security_get_key_mgmt(wireless_security) != NULL)
+			if (key_mgmt != NULL)
 				continue;
 		}
 		nm->connection = connection;

@@ -12,7 +12,7 @@ const char *log_path[] = {"$HOME", "window-manager.log", NULL};
 void
 log_string(GString *string)
 {
-	if (!string && string->len < 1)
+	if (!string || string->len < 1)
 		return;
 
 	FILE      *fp;
@@ -56,6 +56,7 @@ log_string(GString *string)
 		g_string_free(string, TRUE);
 	if (fp)
 		fclose(fp);
+	g_string_free(path, TRUE);
 }
 
 int
@@ -127,7 +128,7 @@ forkexecv(char *path, char *args[])
 		exit(EXIT_FAILURE);
 	} else if (pID == 0) {
 		setsid();
-		execv(path, args);
+		execvp(path, args);
 		perror("Fork execv failed");
 		exit(EXIT_FAILURE);
 	}
@@ -136,6 +137,6 @@ forkexecv(char *path, char *args[])
 void
 signal_dwmblocks()
 {
-	char *args[] = {"dwmblocksctl", "-s", "internet", NULL};
-	forkexecv("/usr/local/bin/dwmblocksctl", args);
+	char *args[] = {"dwmblocks", "--update", "internet", NULL};
+	forkexecv("dwmblocks", args);
 }
