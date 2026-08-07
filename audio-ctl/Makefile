@@ -6,8 +6,8 @@ PREFIX   ?= $(HOME)/.local
 BINDIR   := bin
 OBJDIR   := obj
 
-BIN      := dwm-audio
-SRCS     := dwm-audio.c audio.c
+BIN      := audio-ctl
+SRCS     := audio-ctl.c audio.c
 OBJS     := $(SRCS:%.c=$(OBJDIR)/%.o)
 TARGET   := $(BINDIR)/$(BIN)
 

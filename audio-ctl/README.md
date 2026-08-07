@@ -1,4 +1,4 @@
-# dwm-audio
+# audio-ctl
 
 A lightweight PulseAudio volume control utility for efficient audio management.
 
@@ -35,7 +35,7 @@ make install PREFIX=/usr/local
 ## Usage
 
 ```
-dwm-audio [-d device] [-s step] [-m max] command
+audio-ctl [-d device] [-s step] [-m max] command
 ```
 
 ### Devices
@@ -62,28 +62,28 @@ dwm-audio [-d device] [-s step] [-m max] command
 
 ```sh
 # Increase output volume by 5%
-dwm-audio up
+audio-ctl up
 
 # Decrease output volume by 10%
-dwm-audio -s 0.1 down
+audio-ctl -s 0.1 down
 
 # Set output volume to 80%
-dwm-audio set 0.8
+audio-ctl set 0.8
 
 # Toggle output mute
-dwm-audio mute
+audio-ctl mute
 
 # Increase microphone volume
-dwm-audio -d source up
+audio-ctl -d source up
 
 # Set volume with 100% maximum limit
-dwm-audio -m 1.0 set 0.9
+audio-ctl -m 1.0 set 0.9
 
 # Get current volume
-dwm-audio get
+audio-ctl get
 
 # Get full status
-dwm-audio status
+audio-ctl status
 ```
 
 ## Configuration
@@ -109,9 +109,9 @@ After editing, run `make clean && make` to rebuild with new settings.
 Add to your `config.h`:
 
 ```c
-static const char *volup[]     = { "dwm-audio", "up", NULL };
-static const char *voldown[]   = { "dwm-audio", "down", NULL };
-static const char *voltoggle[] = { "dwm-audio", "mute", NULL };
+static const char *volup[]     = { "audio-ctl", "up", NULL };
+static const char *voldown[]   = { "audio-ctl", "down", NULL };
+static const char *voltoggle[] = { "audio-ctl", "mute", NULL };
 
 static Key keys[] = {
     /* ... */
