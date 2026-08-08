@@ -2,6 +2,11 @@
 
 Selects an EasyEffects output preset via a menu. (default dmenu)
 
+## Dependencies
+
+- `dmenu` (or another `dmenu`-compatible menu, see Usage)
+- `easyeffects`, with an EasyEffects instance already running in the background.
+
 ## Installation
 
 ```sh

@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include <errno.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +48,7 @@ estrdup(const char *s)
 	return p;
 }
 
-void *
+static void *
 erealloc(void *ptr, const size_t size)
 {
 	void *p;
@@ -57,7 +58,7 @@ erealloc(void *ptr, const size_t size)
 	return p;
 }
 
-void *
+static void *
 emalloc(const size_t size)
 {
 	void *p;
@@ -67,15 +68,28 @@ emalloc(const size_t size)
 	return p;
 }
 
+static int
+easyeffectsrunning(void)
+{
+	int status;
+
+	status = system("pgrep -x easyeffects >/dev/null 2>&1");
+	if (status == -1)
+		die("system:");
+
+	return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+}
+
 static void
 presetsread(Presets *p)
 {
 	FILE *ep;
 	char b[BUF_SIZE];
+	int status;
 
 	ep = popen("easyeffects --presets", "r");
 	if (!ep)
-		die ("popen: eassyefects --presets:");
+		die("popen: easyeffects --presets:");
 
 	while (fgets(b, sizeof(b), ep)) {
 		char *ptr;
@@ -100,7 +114,11 @@ presetsread(Presets *p)
 		p->name[p->len-1] = estrdup(ptr);
 	}
 
-	pclose(ep);
+	status = pclose(ep);
+	if (status == -1)
+		die("pclose:");
+	if (!WIFEXITED(status) || WEXITSTATUS(status))
+		die("easyeffects --presets: exited with an error");
 }
 
 static char *
@@ -151,10 +169,11 @@ presetsel(Presets *p, int argc, char *argv[])
 	    !(fout = fdopen(pout[0], "r")))
 		die("fdopen:");
 
-	for (size_t i = 0; i < p->len; i++)
-		fprintf(fin, "%s\n", p->name[i]);
+	for (size_t i = 0; i < p->len; i++) {
+		if (fprintf(fin, "%s\n", p->name[i]) < 0)
+			break;
+	}
 	fclose(fin);
-	close(pin[1]);
 	free(args);
 
 	if (fgets(b, sizeof(b), fout)) {
@@ -165,7 +184,6 @@ presetsel(Presets *p, int argc, char *argv[])
 	}
 
 	fclose(fout);
-	close (pout[0]);
 
 	while (waitpid(pid, &status, 0) < 0 && errno == EINTR);
 
@@ -201,6 +219,11 @@ main(int argc, char *argv[])
 {
 	Presets p = {0};
 	char *sel;
+
+	signal(SIGPIPE, SIG_IGN);
+
+	if (!easyeffectsrunning())
+		die("easyeffects is not running, start it first");
 
 	presetsread(&p);
 
