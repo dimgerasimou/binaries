@@ -8,17 +8,14 @@ LDLIBS  ?=
 PREFIX  ?= $(HOME)/.local
 BINDIR  ?= bin
 
-SRC     = main.c
+SRC     = eq-select.c
 BIN     = eq-select
 TARGET  = $(BINDIR)/$(BIN)
 
 all: $(TARGET)
 
-$(TARGET): $(SRC) config.h | $(BINDIR)
+$(TARGET): $(SRC) | $(BINDIR)
 	$(CC) $(CFLAGS) -o $@ $(SRC) $(LDFLAGS) $(LDLIBS)
-
-config.h:
-	cp config.def.h config.h
 
 $(BINDIR):
 	mkdir -p $@

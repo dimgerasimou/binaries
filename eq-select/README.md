@@ -1,11 +1,6 @@
 # eq-select
 
-Selects an EasyEffects output preset via dmenu.
-
-## Dependencies
-
-- dmenu
-- easyeffects
+Selects an EasyEffects output preset via a menu. (default dmenu)
 
 ## Installation
 
@@ -27,22 +22,7 @@ eq-select [dmenu options...]
 ```
 
 Any arguments are passed straight through to `menucmd`, after eq-select's own
-`-p` prompt flag. Use this to set fonts, colors, line count, or to switch to
-a compatible menu (e.g. `rofi -dmenu`) without rebuilding.
-
-## Configuration
-
-Edit `config.h` to customize:
-
-```c
-/* menu command; extra args passed on the command line are forwarded to it */
-static const char menucmd[] = "dmenu";
-
-/* Maximum number of presets */
-#define MAX_PRESETS 64
-```
-
-After editing, run `make clean && make` to rebuild with new settings.
+`-p` prompt flag. Use this to set fonts, colors, line count without rebuilding.
 
 ## Keybinding Example (dwm)
 
