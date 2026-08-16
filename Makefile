@@ -5,7 +5,7 @@ MAKEFLAGS += --no-print-directory
 
 PREFIX  ?= $(HOME)/.local
 
-TARGETS := audio-ctl eq-select selshot sink-select wifi-prompt xkbnext
+TARGETS := audio-ctl eq-select selshot sink-select wifi-prompt xkbnext trackpad-toggle kbd-backlight
 SCRIPTS := wallpaper-select
 
 all: $(TARGETS)
